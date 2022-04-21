@@ -1,0 +1,44 @@
+{
+  "name": "serverless-snapper",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jest": "^27.4.1",
+    "@typescript-eslint/eslint-plugin": "^5.20.0",
+    "@typescript-eslint/parser": "^5.20.0",
+    "eslint": "^8.13.0",
+    "eslint-config-prettier": "^8.5.0",
+    "husky": "^7.0.4",
+    "jest": "^27.5.1",
+    "lint-staged": "^12.4.0",
+    "prettier": "2.6.2",
+    "ts-jest": "^27.1.4",
+    "ts-loader": "^9.2.8",
+    "typescript": "^4.6.3",
+    "webpack": "^5.70.0",
+    "webpack-cli": "^4.9.2"
+  },
+  "dependencies": {
+    "@types/lodash": "^4.14.179",
+    "@types/pngjs": "^6.0.1",
+    "aws-sdk": "^2.1001.0",
+    "ethers": "^5.5.4",
+    "ipfs-http-client": "^56.0.1",
+    "lodash": "^4.17.21",
+    "node-abort-controller": "^3.0.1",
+    "pngjs": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=v14.17.6<15"
+  },
+  "lint-staged": {
+    "*.ts": " eslint --fix",
+    "**/*": "prettier --write --ignore-unknown"
+  }
+}

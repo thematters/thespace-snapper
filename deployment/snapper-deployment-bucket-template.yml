@@ -1,0 +1,62 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Managed Stack for Snapper Deployment source bucket
+Outputs:
+  SourceBucket:
+    Value: !Ref SnapperSourceBucket
+Resources:
+  SnapperSourceBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicPolicy: "true"
+        BlockPublicAcls: "true"
+        IgnorePublicAcls: "true"
+        RestrictPublicBuckets: "true"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: "aws:kms"
+      VersioningConfiguration:
+        Status: Enabled
+  SnapperSourceBucketBucketPolicy:
+    Type: "AWS::S3::BucketPolicy"
+    Properties:
+      Bucket: !Ref SnapperSourceBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - "s3:GetObject"
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - "arn:"
+                - !Ref "AWS::Partition"
+                - ":s3:::"
+                - !Ref SnapperSourceBucket
+                - /*
+            Principal:
+              Service: serverlessrepo.amazonaws.com
+            Condition:
+              StringEquals:
+                "aws:SourceAccount": !Ref "AWS::AccountId"
+          - Action:
+              - "s3:*"
+            Effect: Deny
+            Resource:
+              - !Join
+                - ""
+                - - "arn:"
+                  - !Ref "AWS::Partition"
+                  - ":s3:::"
+                  - !Ref SnapperSourceBucket
+              - !Join
+                - ""
+                - - "arn:"
+                  - !Ref "AWS::Partition"
+                  - ":s3:::"
+                  - !Ref SnapperSourceBucket
+                  - /*
+            Principal: "*"
+            Condition:
+              Bool:
+                "aws:SecureTransport": "false"

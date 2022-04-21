@@ -1,0 +1,224 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: serverless-snapper
+
+Parameters:
+  privateKey:
+    Type: String
+    MaxLength: 64
+    MinLength: 64
+    NoEcho: true
+    Description: "Snapper contract owner's private key."
+  providerRpcHttpUrl:
+    Type: String
+    Description: "The JSON-RPC API is a popular method for interacting with Ethereum and is available in all major Ethereum node implementations, see https://github.com/ethereum/wiki/wiki/JSON-RPC"
+  infuraIpfsProjectId:
+    Type: String
+    Description: "Infura IPFS PROJECT_ID, see https://docs.infura.io/infura/networks/ipfs/getting-started/authenticate-requests"
+  infuraIpfsProjectSecret:
+    Type: String
+    NoEcho: true
+    Description: "Infura IPFS PROJECT_SECRET, see https://docs.infura.io/infura/networks/ipfs/getting-started/authenticate-requests"
+  snapperAddress:
+    Type: String
+    MaxLength: 42
+    MinLength: 42
+    Description: "Snapper contract address."
+  thespaceAddress:
+    Type: String
+    MaxLength: 42
+    MinLength: 42
+    Description: "TheSpace contract address."
+  safeConfirmations:
+    Type: Number
+    MinValue: 1
+    Description: "block with safeConfirmations considered be finalized. use to calc the snapshot target blocks."
+  batchSize:
+    Type: Number
+    MinValue: 1
+    Description: "the minimum amount of Color events to take snapshot."
+
+Resources:
+  SnapperLambda:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Code: ../dist/handler.zip
+      PackageType: Zip
+      Description: >-
+        A Lambda function.
+      Handler: snapper-handler.snapperHandler
+      Environment:
+        Variables:
+          PROVIDER_RPC_HTTP_URL: !Ref providerRpcHttpUrl
+          PRIVATE_KEY: !Ref privateKey
+          SNAPPER_ADDRESS: !Ref snapperAddress
+          THESPACE_ADDRESS: !Ref thespaceAddress
+          SAFE_CONFIRMATIONS: !Ref safeConfirmations
+          BATCH_SIZE: !Ref batchSize
+          SNAPSHOT_BUCKET_NAME: !Ref SnapshotBucket
+          INFURA_IPFS_PROJECT_ID: !Ref infuraIpfsProjectId
+          INFURA_IPFS_PROJECT_SECRET: !Ref infuraIpfsProjectSecret
+      Architectures:
+        - x86_64
+      Runtime: nodejs14.x
+      MemorySize: 512
+      Timeout: 900
+      Role: !GetAtt LambdaRole.Arn
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+  LambdaRolePolicy:
+    Type: "AWS::IAM::Policy"
+    Properties:
+      Roles:
+        - !Ref LambdaRole
+      PolicyName: "snaperRole"
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "s3:ListBucket"
+            Effect: Allow
+            Resource: !GetAtt SnapshotBucket.Arn
+          - Action:
+              - "s3:GetObject"
+              - "s3:PutObject"
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - !GetAtt SnapshotBucket.Arn
+                - "/*"
+          - Action:
+              - "events:PutRule"
+            Effect: Allow
+            Resource: !GetAtt CronEvent.Arn
+          - Action:
+              - "logs:CreateLogGroup"
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - "arn:"
+                - !Ref "AWS::Partition"
+                - ":logs:"
+                - !Ref "AWS::Region"
+                - ":"
+                - !Ref "AWS::AccountId"
+                - ":*"
+          - Action:
+              - "logs:CreateLogStream"
+              - "logs:PutLogEvents"
+            Effect: Allow
+            Resource: !Join
+              - ""
+              - - "arn:"
+                - !Ref "AWS::Partition"
+                - ":logs:"
+                - !Ref "AWS::Region"
+                - ":"
+                - !Ref "AWS::AccountId"
+                - ":log-group:/aws/lambda/"
+                - !Ref SnapperLambda
+                - ":*"
+  CronEvent:
+    Type: "AWS::Events::Rule"
+    Properties:
+      ScheduleExpression: "rate(60 minutes)"
+      Targets:
+        - Arn: !GetAtt SnapperLambda.Arn
+          Id: CronEventLambdaTarget
+  CronEventPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref SnapperLambda
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt CronEvent.Arn
+  SnapshotBucket:
+    Type: "AWS::S3::Bucket"
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicPolicy: "true"
+        BlockPublicAcls: "true"
+        IgnorePublicAcls: "true"
+        RestrictPublicBuckets: "true"
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods:
+              - "GET"
+            AllowedOrigins:
+              - "*"
+            ExposedHeaders:
+              - "Access-Control-Allow-Origin"
+  BucketPolicyWithAOI:
+    Type: "AWS::S3::BucketPolicy"
+    Metadata:
+      Comment: "Bucket policy to allow cloudfront to access the data"
+    Properties:
+      Bucket: !Ref SnapshotBucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - "s3:GetObject"
+            Effect: "Allow"
+            Principal:
+              CanonicalUser: !GetAtt CfOriginAccessIdentity.S3CanonicalUserId
+            Resource:
+              - !Sub "arn:aws:s3:::${SnapshotBucket}/*"
+  CfDistributionWithAOI:
+    Type: "AWS::CloudFront::Distribution"
+    Metadata:
+      Comment: "A simple CloudFront distribution with an S3 origin"
+    Properties:
+      DistributionConfig:
+        Comment: "A simple distribution with an S3 origin"
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - "HEAD"
+            - "GET"
+          CachedMethods:
+            - "HEAD"
+            - "GET"
+          Compress: false
+          DefaultTTL: 86400
+          ForwardedValues:
+            Cookies:
+              Forward: "none"
+            Headers:
+              - "Origin"
+            QueryString: false
+          MaxTTL: 31536000
+          MinTTL: 86400
+          TargetOriginId: !Sub "s3-origin-${SnapshotBucket}"
+          ViewerProtocolPolicy: "redirect-to-https"
+        DefaultRootObject: "index.html"
+        Enabled: true
+        HttpVersion: "http1.1"
+        IPV6Enabled: false
+        Origins:
+          - DomainName: !Sub "${SnapshotBucket}.s3.amazonaws.com"
+            Id: !Sub "s3-origin-${SnapshotBucket}"
+            OriginPath: ""
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CfOriginAccessIdentity}"
+        PriceClass: "PriceClass_All"
+  CfOriginAccessIdentity:
+    Type: "AWS::CloudFront::CloudFrontOriginAccessIdentity"
+    Metadata:
+      Comment: "Access S3 bucket content only through CloudFront"
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: "Access S3 bucket content only through CloudFront"
+
+Outputs:
+  CfDistributionDomainNameWithOAI:
+    Description: "Domain name for snapshot cloudfront distribution"
+    Value: !GetAtt CfDistributionWithAOI.DomainName
