@@ -68,8 +68,7 @@ deploy: clean dist/handler.zip
 			infuraIpfsProjectSecret=${INFURA_IPFS_PROJECT_SECRET} \
 			snapperAddress=${SNAPPER_ADDRESS} \
 			thespaceAddress=${THESPACE_ADDRESS} \
-			safeConfirmations=${SAFE_CONFIRMATIONS} \
-			batchSize=${SNAPSHOT_BATCH_SIZE}; \
+			safeConfirmations=${SAFE_CONFIRMATIONS}; \
 	rm ${PACKAGED_TEMPLATE};
 
 output:

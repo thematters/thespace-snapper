@@ -14,11 +14,12 @@ import { abi as snapperABI } from "../abi/Snapper.json";
 
 globalThis.AbortController = AbortController;
 
-// default values
+// constants
 
-const DEFAULT_LATEST_BLOCKS = 300; // roughly 10 mins
-const DEFAULT_INTERVAL_MIN = 20; // min.
-const DEFAULT_INTERVAL_MAX = 100; // min.
+const LATEST_BLOCKS = 300; // roughly 10 mins
+const INTERVAL_MIN = 20; // min.
+const INTERVAL_MAX = 100; // min.
+const COLOR_EVENTS_THRESHOLD = 100;
 
 // main
 
@@ -32,7 +33,6 @@ const main = async function (event: any) {
     process.env.INFURA_IPFS_PROJECT_SECRET === undefined ||
     process.env.SNAPSHOT_BUCKET_NAME === undefined ||
     process.env.SAFE_CONFIRMATIONS === undefined ||
-    process.env.BATCH_SIZE === undefined ||
     process.env.AWS_REGION === undefined
   ) {
     throw Error("All environment variables must be provided");
@@ -76,7 +76,6 @@ const main = async function (event: any) {
 
   const safeConfirmations: number = parseInt(process.env.SAFE_CONFIRMATIONS);
   const latestBlock: number = await provider.getBlockNumber();
-  const batchSize = parseInt(process.env.BATCH_SIZE);
 
   if (safeConfirmations > latestBlock) {
     console.log(`blocks too few.`);
@@ -113,14 +112,14 @@ const main = async function (event: any) {
 
   const ruleName = ruleNameFromEvent(event);
   if (ruleName !== null) {
-    if (hasEventsRecently(events, latestBlock - DEFAULT_LATEST_BLOCKS)) {
-      await changeCron(ruleName, DEFAULT_INTERVAL_MIN);
+    if (hasEventsRecently(events, latestBlock - LATEST_BLOCKS)) {
+      await changeCron(ruleName, INTERVAL_MIN);
     } else {
-      await changeCron(ruleName, DEFAULT_INTERVAL_MAX);
+      await changeCron(ruleName, INTERVAL_MAX);
     }
   }
 
-  if (events.length < batchSize) {
+  if (events.length < COLOR_EVENTS_THRESHOLD) {
     console.log(`new Color events too few (count:${events.length}).`);
     return;
   }

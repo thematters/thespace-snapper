@@ -33,10 +33,6 @@ Parameters:
     Type: Number
     MinValue: 1
     Description: "block with safeConfirmations considered be finalized. use to calc the snapshot target blocks."
-  batchSize:
-    Type: Number
-    MinValue: 1
-    Description: "the minimum amount of Color events to take snapshot."
 
 Resources:
   SnapperLambda:
@@ -54,7 +50,6 @@ Resources:
           SNAPPER_ADDRESS: !Ref snapperAddress
           THESPACE_ADDRESS: !Ref thespaceAddress
           SAFE_CONFIRMATIONS: !Ref safeConfirmations
-          BATCH_SIZE: !Ref batchSize
           SNAPSHOT_BUCKET_NAME: !Ref SnapshotBucket
           INFURA_IPFS_PROJECT_ID: !Ref infuraIpfsProjectId
           INFURA_IPFS_PROJECT_SECRET: !Ref infuraIpfsProjectSecret
