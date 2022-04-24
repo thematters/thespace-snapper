@@ -23,20 +23,11 @@ clean:
 node_modules:
 	npm install
 
-dist/snapper-cli.js: node_modules
-	npx webpack --env goal=cli
-
 dist/snapper-handler.js: node_modules
 	npx webpack --env goal=aws-lambda
 
 dist/handler.zip: dist/snapper-handler.js
 	zip -j dist/handler.zip dist/snapper-handler.js
-
-build-cli: clean node_modules
-	npx webpack --env goal=cli
-
-upload-cli: clean dist/snapper-cli.js
-	curl --header "PRIVATE-TOKEN: glpat-ycneR4KFMQnbNG7Kvyxs" --upload-file dist/snapper-cli.js https://gitlab.laixi.pro/api/v4/projects/96/packages/generic/snapper/0.0.0/snapper.js
 
 build-lambda: clean node_modules
 	npx webpack --env goal=aws-lambda

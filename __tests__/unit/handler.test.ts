@@ -1,4 +1,4 @@
-import { snapperHandler } from "../../src/handler";
+import { handler } from "../../src/handler";
 
 describe("Test handler", function () {
   it("Throw error if env not provided", async () => {
@@ -13,7 +13,7 @@ describe("Test handler", function () {
       detail: {},
     };
 
-    await expect(snapperHandler(payload)).rejects.toThrowError(
+    await expect(handler(payload)).rejects.toThrowError(
       "All environment variables must be provided"
     );
   });

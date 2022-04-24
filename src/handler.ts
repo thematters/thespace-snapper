@@ -1,8 +1,10 @@
+import type { IPFS } from "ipfs-core-types";
+import type { Contract } from "ethers";
+
 import { ethers } from "ethers";
 import { create as createIPFS } from "ipfs-http-client";
 import { AbortController } from "node-abort-controller";
 import S3 from "aws-sdk/clients/s3";
-
 import { takeSnapshot, uploadSnapperFilesToS3 } from "./snapper";
 import { fetchColorEvents } from "./events";
 import { hasEventsRecently } from "./utils";
@@ -23,59 +25,15 @@ const COLOR_EVENTS_THRESHOLD = 100;
 
 // main
 
-const main = async function (event: any) {
-  if (
-    process.env.PROVIDER_RPC_HTTP_URL === undefined ||
-    process.env.PRIVATE_KEY === undefined ||
-    process.env.THESPACE_ADDRESS === undefined ||
-    process.env.SNAPPER_ADDRESS === undefined ||
-    process.env.INFURA_IPFS_PROJECT_ID === undefined ||
-    process.env.INFURA_IPFS_PROJECT_SECRET === undefined ||
-    process.env.SNAPSHOT_BUCKET_NAME === undefined ||
-    process.env.SAFE_CONFIRMATIONS === undefined ||
-    process.env.AWS_REGION === undefined
-  ) {
-    throw Error("All environment variables must be provided");
-  }
-
-  const provider = new ethers.providers.JsonRpcProvider(
-    process.env.PROVIDER_RPC_HTTP_URL
-  );
-  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  const theSpace = new ethers.Contract(
-    process.env.THESPACE_ADDRESS,
-    thespaceABI,
-    provider
-  );
-  const snapper = new ethers.Contract(
-    process.env.SNAPPER_ADDRESS,
-    snapperABI,
-    provider
-  );
-
-  const infura_auth =
-    "Basic " +
-    Buffer.from(
-      process.env.INFURA_IPFS_PROJECT_ID +
-        ":" +
-        process.env.INFURA_IPFS_PROJECT_SECRET
-    ).toString("base64");
-  const ipfs = createIPFS({
-    host: "ipfs.infura.io",
-    port: 5001,
-    protocol: "https",
-    headers: {
-      authorization: infura_auth,
-    },
-  });
-  const s3 = new S3({
-    apiVersion: "2006-03-01",
-    region: process.env.AWS_REGION,
-    params: { Bucket: process.env.SNAPSHOT_BUCKET_NAME },
-  });
-
-  const safeConfirmations: number = parseInt(process.env.SAFE_CONFIRMATIONS);
-  const latestBlock: number = await provider.getBlockNumber();
+const _handler = async (
+  event: any,
+  theSpace: Contract,
+  snapper: Contract,
+  safeConfirmations: number,
+  ipfs: IPFS,
+  s3: S3
+) => {
+  const latestBlock: number = await snapper.provider!.getBlockNumber();
 
   if (safeConfirmations > latestBlock) {
     console.log(`blocks too few.`);
@@ -129,7 +87,6 @@ const main = async function (event: any) {
     stableBlock,
     lastSnapShotCid,
     events.filter((e) => e.blockNumber <= stableBlock),
-    signer,
     snapper,
     ipfs,
     s3
@@ -138,6 +95,63 @@ const main = async function (event: any) {
 
 // export handler function
 
-export const snapperHandler = async function (event: any) {
-  await main(event);
+export const handler = async (event: any) => {
+  if (
+    process.env.PROVIDER_RPC_HTTP_URL === undefined ||
+    process.env.PRIVATE_KEY === undefined ||
+    process.env.THESPACE_ADDRESS === undefined ||
+    process.env.SNAPPER_ADDRESS === undefined ||
+    process.env.INFURA_IPFS_PROJECT_ID === undefined ||
+    process.env.INFURA_IPFS_PROJECT_SECRET === undefined ||
+    process.env.SNAPSHOT_BUCKET_NAME === undefined ||
+    process.env.SAFE_CONFIRMATIONS === undefined ||
+    process.env.AWS_REGION === undefined
+  ) {
+    throw Error("All environment variables must be provided");
+  }
+  const provider = new ethers.providers.JsonRpcProvider(
+    process.env.PROVIDER_RPC_HTTP_URL
+  );
+  const theSpace = new ethers.Contract(
+    process.env.THESPACE_ADDRESS,
+    thespaceABI,
+    provider
+  );
+  const snapper = new ethers.Contract(
+    process.env.SNAPPER_ADDRESS,
+    snapperABI,
+    provider
+  );
+  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  snapper.connect(signer);
+
+  const infura_auth =
+    "Basic " +
+    Buffer.from(
+      process.env.INFURA_IPFS_PROJECT_ID +
+        ":" +
+        process.env.INFURA_IPFS_PROJECT_SECRET
+    ).toString("base64");
+  const ipfs = createIPFS({
+    host: "ipfs.infura.io",
+    port: 5001,
+    protocol: "https",
+    headers: {
+      authorization: infura_auth,
+    },
+  });
+  const s3 = new S3({
+    apiVersion: "2006-03-01",
+    region: process.env.AWS_REGION,
+    params: { Bucket: process.env.SNAPSHOT_BUCKET_NAME },
+  });
+
+  await _handler(
+    event,
+    theSpace,
+    snapper,
+    parseInt(process.env.SAFE_CONFIRMATIONS),
+    ipfs,
+    s3
+  );
 };

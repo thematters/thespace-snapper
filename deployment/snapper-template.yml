@@ -42,7 +42,7 @@ Resources:
       PackageType: Zip
       Description: >-
         A Lambda function.
-      Handler: snapper-handler.snapperHandler
+      Handler: snapper-handler.handler
       Environment:
         Variables:
           PROVIDER_RPC_HTTP_URL: !Ref providerRpcHttpUrl

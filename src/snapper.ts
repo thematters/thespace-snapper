@@ -1,5 +1,5 @@
 import type { IPFS } from "ipfs-core-types";
-import type { Event, Signer, Contract } from "ethers";
+import type { Event, Contract } from "ethers";
 import type S3 from "aws-sdk/clients/s3";
 import type { Delta } from "./types";
 
@@ -13,7 +13,6 @@ export const takeSnapshot = async (
   stableBlock: number,
   lastSnapShotCid: string,
   events: Event[],
-  signer: Signer,
   snapper: Contract,
   ipfs: IPFS,
   s3: S3
@@ -56,8 +55,7 @@ export const takeSnapshot = async (
     .promise();
 
   // take snapshot
-  const snapperwithSigner = snapper.connect(signer);
-  const tx = await snapperwithSigner.takeSnapshot(
+  const tx = await snapper.takeSnapshot(
     lastToBlock,
     stableBlock,
     snapshotCid,
