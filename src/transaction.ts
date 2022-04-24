@@ -5,8 +5,7 @@ import type { Delta } from "./types";
 
 import { PNG, PackerOptions } from "pngjs";
 
-import { applyChange, genDelta, readFileOnS3, readFileOnIFPS } from "./utils";
-import { fetchSnapshotEvents, fetchDeltaEvents } from "./events";
+import { applyChange, genDelta, readFileOnS3 } from "./utils";
 
 export const takeSnapshot = async (
   lastToBlock: number,
@@ -69,30 +68,4 @@ export const takeSnapshot = async (
   console.info(
     `snapper::emit: Delta(blocknum: ${lastToBlock}, cid: ${deltaCid} ).`
   );
-};
-
-export const uploadSnapperFilesToS3 = async (
-  snapper: Contract,
-  ipfs: IPFS,
-  s3: S3
-) => {
-  for (const e of await fetchSnapshotEvents(snapper)) {
-    const cid = e.args!.cid;
-    await s3
-      .putObject(<S3.Types.PutObjectRequest>{
-        Key: cid,
-        Body: await readFileOnIFPS(cid, ipfs),
-        ContentType: "image/png",
-      })
-      .promise();
-  }
-  for (const e of await fetchDeltaEvents(snapper)) {
-    const cid = e.args!.cid;
-    await s3
-      .putObject(<S3.Types.PutObjectRequest>{
-        Key: cid,
-        Body: await readFileOnIFPS(cid, ipfs),
-      })
-      .promise();
-  }
 };

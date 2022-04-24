@@ -5,10 +5,14 @@ import { ethers } from "ethers";
 import { create as createIPFS } from "ipfs-http-client";
 import { AbortController } from "node-abort-controller";
 import S3 from "aws-sdk/clients/s3";
-import { takeSnapshot, uploadSnapperFilesToS3 } from "./snapper";
-import { fetchColorEvents } from "./events";
-import { hasEventsRecently } from "./utils";
+import { takeSnapshot } from "./transaction";
+import {
+  fetchColorEvents,
+  fetchSnapshotEvents,
+  fetchDeltaEvents,
+} from "./events";
 import { ruleNameFromEvent, changeCron } from "./cron";
+import { hasEventsRecently, readFileOnIFPS } from "./utils";
 import { abi as thespaceABI } from "../abi/TheSpace.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
 
@@ -91,6 +95,32 @@ const _handler = async (
     ipfs,
     s3
   );
+};
+
+const uploadSnapperFilesToS3 = async (
+  snapper: Contract,
+  ipfs: IPFS,
+  s3: S3
+) => {
+  for (const e of await fetchSnapshotEvents(snapper)) {
+    const cid = e.args!.cid;
+    await s3
+      .putObject(<S3.Types.PutObjectRequest>{
+        Key: cid,
+        Body: await readFileOnIFPS(cid, ipfs),
+        ContentType: "image/png",
+      })
+      .promise();
+  }
+  for (const e of await fetchDeltaEvents(snapper)) {
+    const cid = e.args!.cid;
+    await s3
+      .putObject(<S3.Types.PutObjectRequest>{
+        Key: cid,
+        Body: await readFileOnIFPS(cid, ipfs),
+      })
+      .promise();
+  }
 };
 
 // export handler function
