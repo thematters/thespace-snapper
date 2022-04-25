@@ -30,10 +30,10 @@ const COLOR_EVENTS_THRESHOLD = 100;
 // main
 
 const _handler = async (
-  event: any,
   theSpace: Contract,
   snapper: Contract,
   safeConfirmations: number,
+  cronRuleName: string | null,
   ipfs: IPFS,
   s3: S3
 ) => {
@@ -72,12 +72,11 @@ const _handler = async (
 
   // determine whether to change cron rate.
 
-  const ruleName = ruleNameFromEvent(event);
-  if (ruleName !== null) {
+  if (cronRuleName !== null) {
     if (hasEventsRecently(events, latestBlock - LATEST_BLOCKS)) {
-      await changeCron(ruleName, INTERVAL_MIN);
+      await changeCron(cronRuleName, INTERVAL_MIN);
     } else {
-      await changeCron(ruleName, INTERVAL_MAX);
+      await changeCron(cronRuleName, INTERVAL_MAX);
     }
   }
 
@@ -177,10 +176,10 @@ export const handler = async (event: any) => {
   });
 
   await _handler(
-    event,
     theSpace,
     snapper,
     parseInt(process.env.SAFE_CONFIRMATIONS),
+    ruleNameFromEvent(event),
     ipfs,
     s3
   );
