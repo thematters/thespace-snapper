@@ -1,4 +1,3 @@
-import type { IPFS } from "ipfs-core-types";
 import type { Event } from "ethers";
 import type { Delta, BlockChange } from "./types";
 import type { PNG } from "pngjs";
@@ -72,15 +71,4 @@ export const applyChange = (png: PNG, delta: Delta): void => {
       png.data[idx + 3] = 0xff;
     }
   }
-};
-
-export const readFileOnIFPS = async (
-  cid: string,
-  client: IPFS
-): Promise<Buffer> => {
-  const chunks = [];
-  for await (const chunk of client.cat(cid)) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
 };

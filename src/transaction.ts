@@ -1,10 +1,9 @@
-import type { IPFS } from "ipfs-core-types";
 import type { Event, Contract } from "ethers";
 import type { Delta } from "./types";
 
 import { PNG, PackerOptions } from "pngjs";
 
-import { ObjectStorage } from "./storage";
+import { ObjectStorage, IPFS } from "./storage";
 import { applyChange, genDelta } from "./utils";
 
 export const takeSnapshot = async (
@@ -37,10 +36,8 @@ export const takeSnapshot = async (
 
   // upload to ipfs
   const deltaString = JSON.stringify(delta);
-  const { cid: deltaCid_ } = await ipfs.add({ content: deltaString });
-  const deltaCid: string = deltaCid_.toString();
-  const { cid: snapshotCid_ } = await ipfs.add({ content: snapshot });
-  const snapshotCid: string = snapshotCid_.toString();
+  const deltaCid = await ipfs.writeAndReturnCid(deltaString);
+  const snapshotCid = await ipfs.writeAndReturnCid(snapshot);
   // upload to s3
   await storage.write(deltaCid, deltaString, "application/json");
   await storage.write(snapshotCid, snapshot, "image/png");

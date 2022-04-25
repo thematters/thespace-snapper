@@ -1,10 +1,8 @@
-import type { IPFS } from "ipfs-core-types";
 import type { Contract } from "ethers";
 
 import { ethers } from "ethers";
-import { create as createIPFS } from "ipfs-http-client";
 import { AbortController } from "node-abort-controller";
-import { ObjectStorage } from "./storage";
+import { ObjectStorage, IPFS } from "./storage";
 import { takeSnapshot } from "./transaction";
 import {
   fetchColorEvents,
@@ -12,7 +10,7 @@ import {
   fetchDeltaEvents,
 } from "./events";
 import { ruleNameFromEvent, changeCron } from "./cron";
-import { hasEventsRecently, readFileOnIFPS } from "./utils";
+import { hasEventsRecently } from "./utils";
 import { abi as thespaceABI } from "../abi/TheSpace.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
 
@@ -95,15 +93,11 @@ const syncSnapperFiles = async (
 ) => {
   for (const e of await fetchSnapshotEvents(snapper)) {
     const cid = e.args!.cid;
-    await storage.write(cid, await readFileOnIFPS(cid, ipfs), "image/png");
+    await storage.write(cid, await ipfs.read(cid), "image/png");
   }
   for (const e of await fetchDeltaEvents(snapper)) {
     const cid = e.args!.cid;
-    await storage.write(
-      cid,
-      await readFileOnIFPS(cid, ipfs),
-      "application/json"
-    );
+    await storage.write(cid, await ipfs.read(cid), "application/json");
   }
 };
 
@@ -139,28 +133,15 @@ export const handler = async (event: any) => {
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   snapper.connect(signer);
 
-  const infura_auth =
-    "Basic " +
-    Buffer.from(
-      process.env.INFURA_IPFS_PROJECT_ID +
-        ":" +
-        process.env.INFURA_IPFS_PROJECT_SECRET
-    ).toString("base64");
-  const ipfs = createIPFS({
-    host: "ipfs.infura.io",
-    port: 5001,
-    protocol: "https",
-    headers: {
-      authorization: infura_auth,
-    },
-  });
-
   await _handler(
     theSpace,
     snapper,
     parseInt(process.env.SAFE_CONFIRMATIONS),
     ruleNameFromEvent(event),
-    ipfs,
+    new IPFS(
+      process.env.INFURA_IPFS_PROJECT_ID,
+      process.env.INFURA_IPFS_PROJECT_SECRET
+    ),
     new ObjectStorage(process.env.AWS_REGION, process.env.SNAPSHOT_BUCKET_NAME)
   );
 };
