@@ -4,7 +4,7 @@ import type { Delta } from "./types";
 
 import { PNG, PackerOptions } from "pngjs";
 
-import { Storage } from "./storage";
+import { ObjectStorage } from "./storage";
 import { applyChange, genDelta } from "./utils";
 
 export const takeSnapshot = async (
@@ -14,7 +14,7 @@ export const takeSnapshot = async (
   events: Event[],
   snapper: Contract,
   ipfs: IPFS,
-  storage: Storage
+  storage: ObjectStorage
 ) => {
   // gen delta data
   console.time("genDelta");

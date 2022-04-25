@@ -1,6 +1,6 @@
 import S3 from "aws-sdk/clients/s3";
 
-export class Storage {
+export class ObjectStorage {
   s3: S3;
 
   constructor(region: string, bucketName: string) {

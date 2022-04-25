@@ -4,7 +4,7 @@ import type { Contract } from "ethers";
 import { ethers } from "ethers";
 import { create as createIPFS } from "ipfs-http-client";
 import { AbortController } from "node-abort-controller";
-import { Storage } from "./storage";
+import { ObjectStorage } from "./storage";
 import { takeSnapshot } from "./transaction";
 import {
   fetchColorEvents,
@@ -35,7 +35,7 @@ const _handler = async (
   safeConfirmations: number,
   cronRuleName: string | null,
   ipfs: IPFS,
-  storage: Storage
+  storage: ObjectStorage
 ) => {
   const latestBlock: number = await snapper.provider!.getBlockNumber();
 
@@ -91,7 +91,7 @@ const _handler = async (
 const syncSnapperFiles = async (
   snapper: Contract,
   ipfs: IPFS,
-  storage: Storage
+  storage: ObjectStorage
 ) => {
   for (const e of await fetchSnapshotEvents(snapper)) {
     const cid = e.args!.cid;
@@ -161,6 +161,6 @@ export const handler = async (event: any) => {
     parseInt(process.env.SAFE_CONFIRMATIONS),
     ruleNameFromEvent(event),
     ipfs,
-    new Storage(process.env.AWS_REGION, process.env.SNAPSHOT_BUCKET_NAME)
+    new ObjectStorage(process.env.AWS_REGION, process.env.SNAPSHOT_BUCKET_NAME)
   );
 };
