@@ -1,16 +1,16 @@
-import type { Contract } from "ethers";
+import type { Contract, Event } from "ethers";
 
 import { ethers } from "ethers";
 import { AbortController } from "node-abort-controller";
+import { nth } from "lodash";
 import { ObjectStorage, IPFS } from "./storage";
-import { takeSnapshot } from "./transaction";
 import {
+  takeSnapshot,
   fetchColorEvents,
   fetchSnapshotEvents,
   fetchDeltaEvents,
-} from "./events";
+} from "./contracts";
 import { ruleNameFromEvent, changeCron } from "./cron";
-import { hasEventsRecently } from "./utils";
 import { abi as thespaceABI } from "../abi/TheSpace.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
 
@@ -26,6 +26,49 @@ const INTERVAL_MAX = 100; // min.
 const COLOR_EVENTS_THRESHOLD = 100;
 
 // main
+
+export const handler = async (event: any) => {
+  if (
+    process.env.PROVIDER_RPC_HTTP_URL === undefined ||
+    process.env.PRIVATE_KEY === undefined ||
+    process.env.THESPACE_ADDRESS === undefined ||
+    process.env.SNAPPER_ADDRESS === undefined ||
+    process.env.INFURA_IPFS_PROJECT_ID === undefined ||
+    process.env.INFURA_IPFS_PROJECT_SECRET === undefined ||
+    process.env.SNAPSHOT_BUCKET_NAME === undefined ||
+    process.env.SAFE_CONFIRMATIONS === undefined ||
+    process.env.AWS_REGION === undefined
+  ) {
+    throw Error("All environment variables must be provided");
+  }
+  const provider = new ethers.providers.JsonRpcProvider(
+    process.env.PROVIDER_RPC_HTTP_URL
+  );
+  const theSpace = new ethers.Contract(
+    process.env.THESPACE_ADDRESS,
+    thespaceABI,
+    provider
+  );
+  const snapper = new ethers.Contract(
+    process.env.SNAPPER_ADDRESS,
+    snapperABI,
+    provider
+  );
+  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  snapper.connect(signer);
+
+  await _handler(
+    theSpace,
+    snapper,
+    parseInt(process.env.SAFE_CONFIRMATIONS),
+    ruleNameFromEvent(event),
+    new IPFS(
+      process.env.INFURA_IPFS_PROJECT_ID,
+      process.env.INFURA_IPFS_PROJECT_SECRET
+    ),
+    new ObjectStorage(process.env.AWS_REGION, process.env.SNAPSHOT_BUCKET_NAME)
+  );
+};
 
 const _handler = async (
   theSpace: Contract,
@@ -90,6 +133,23 @@ const _handler = async (
   );
 };
 
+// helpers
+
+export const hasEventsRecently = (
+  events: Event[],
+  recentBlock: number
+): boolean => {
+  const lastBlock = nth(events, -1)?.blockNumber;
+  if (lastBlock == undefined) {
+    return false;
+  }
+  if (lastBlock >= recentBlock) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
 const syncSnapperFiles = async (
   snapper: Contract,
   ipfs: IPFS,
@@ -103,49 +163,4 @@ const syncSnapperFiles = async (
     const cid = e.args!.cid;
     await storage.write(cid, await ipfs.read(cid), "application/json");
   }
-};
-
-// export handler function
-
-export const handler = async (event: any) => {
-  if (
-    process.env.PROVIDER_RPC_HTTP_URL === undefined ||
-    process.env.PRIVATE_KEY === undefined ||
-    process.env.THESPACE_ADDRESS === undefined ||
-    process.env.SNAPPER_ADDRESS === undefined ||
-    process.env.INFURA_IPFS_PROJECT_ID === undefined ||
-    process.env.INFURA_IPFS_PROJECT_SECRET === undefined ||
-    process.env.SNAPSHOT_BUCKET_NAME === undefined ||
-    process.env.SAFE_CONFIRMATIONS === undefined ||
-    process.env.AWS_REGION === undefined
-  ) {
-    throw Error("All environment variables must be provided");
-  }
-  const provider = new ethers.providers.JsonRpcProvider(
-    process.env.PROVIDER_RPC_HTTP_URL
-  );
-  const theSpace = new ethers.Contract(
-    process.env.THESPACE_ADDRESS,
-    thespaceABI,
-    provider
-  );
-  const snapper = new ethers.Contract(
-    process.env.SNAPPER_ADDRESS,
-    snapperABI,
-    provider
-  );
-  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  snapper.connect(signer);
-
-  await _handler(
-    theSpace,
-    snapper,
-    parseInt(process.env.SAFE_CONFIRMATIONS),
-    ruleNameFromEvent(event),
-    new IPFS(
-      process.env.INFURA_IPFS_PROJECT_ID,
-      process.env.INFURA_IPFS_PROJECT_SECRET
-    ),
-    new ObjectStorage(process.env.AWS_REGION, process.env.SNAPSHOT_BUCKET_NAME)
-  );
 };

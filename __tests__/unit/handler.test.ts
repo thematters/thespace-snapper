@@ -1,4 +1,6 @@
-import { handler } from "../../src/handler";
+import type { Event } from "ethers";
+
+import { handler, hasEventsRecently } from "../../src/handler";
 
 describe("Test handler", function () {
   it("Throw error if env not provided", async () => {
@@ -16,5 +18,19 @@ describe("Test handler", function () {
     await expect(handler(payload)).rejects.toThrowError(
       "All environment variables must be provided"
     );
+  });
+});
+
+// test helpers
+
+describe("test hasEventsRecently", function () {
+  it("return false if events is empty", () => {
+    expect(hasEventsRecently([], 10)).toBe(false);
+  });
+  it("return false if have no recent events", () => {
+    expect(hasEventsRecently([{ blockNumber: 1 } as Event], 10)).toBe(false);
+  });
+  it("return true if have recent events", () => {
+    expect(hasEventsRecently([{ blockNumber: 10 } as Event], 10)).toBe(true);
   });
 });
