@@ -1,6 +1,5 @@
 import type { IPFS } from "ipfs-core-types";
 import type { Event } from "ethers";
-import type S3 from "aws-sdk/clients/s3";
 import type { Delta, BlockChange } from "./types";
 import type { PNG } from "pngjs";
 
@@ -81,17 +80,6 @@ export const readFileOnIFPS = async (
 ): Promise<Buffer> => {
   const chunks = [];
   for await (const chunk of client.cat(cid)) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
-};
-
-export const readFileOnS3 = async (cid: string, s3: S3): Promise<Buffer> => {
-  const chunks = [];
-  const stream = s3
-    .getObject({ Key: cid } as S3.Types.GetObjectRequest)
-    .createReadStream();
-  for await (const chunk of stream) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks);

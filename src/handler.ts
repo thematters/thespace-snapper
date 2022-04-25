@@ -4,7 +4,7 @@ import type { Contract } from "ethers";
 import { ethers } from "ethers";
 import { create as createIPFS } from "ipfs-http-client";
 import { AbortController } from "node-abort-controller";
-import S3 from "aws-sdk/clients/s3";
+import { Storage } from "./storage";
 import { takeSnapshot } from "./transaction";
 import {
   fetchColorEvents,
@@ -35,7 +35,7 @@ const _handler = async (
   safeConfirmations: number,
   cronRuleName: string | null,
   ipfs: IPFS,
-  s3: S3
+  storage: Storage
 ) => {
   const latestBlock: number = await snapper.provider!.getBlockNumber();
 
@@ -50,18 +50,10 @@ const _handler = async (
 
   // upload snapshot and delta from ipfs to s3 if there is no file in bucket.
 
-  try {
-    await s3
-      .headObject({ Key: lastSnapShotCid } as S3.Types.HeadObjectRequest)
-      .promise();
-  } catch (err: any) {
-    if (err?.code == "NotFound") {
-      console.time("uploadSnapperFilesToS3");
-      await uploadSnapperFilesToS3(snapper, ipfs, s3);
-      console.timeEnd("uploadSnapperFilesToS3");
-    } else {
-      throw err;
-    }
+  if ((await storage.check(lastSnapShotCid)) === false) {
+    console.time("uploadSnapperFilesToS3");
+    await uploadSnapperFilesToS3(snapper, ipfs, storage);
+    console.timeEnd("uploadSnapperFilesToS3");
   }
 
   // note that fetchColorEvents may take long time with large blocks range.
@@ -92,33 +84,26 @@ const _handler = async (
     events.filter((e) => e.blockNumber <= stableBlock),
     snapper,
     ipfs,
-    s3
+    storage
   );
 };
 
 const uploadSnapperFilesToS3 = async (
   snapper: Contract,
   ipfs: IPFS,
-  s3: S3
+  storage: Storage
 ) => {
   for (const e of await fetchSnapshotEvents(snapper)) {
     const cid = e.args!.cid;
-    await s3
-      .putObject(<S3.Types.PutObjectRequest>{
-        Key: cid,
-        Body: await readFileOnIFPS(cid, ipfs),
-        ContentType: "image/png",
-      })
-      .promise();
+    await storage.write(cid, await readFileOnIFPS(cid, ipfs), "image/png");
   }
   for (const e of await fetchDeltaEvents(snapper)) {
     const cid = e.args!.cid;
-    await s3
-      .putObject(<S3.Types.PutObjectRequest>{
-        Key: cid,
-        Body: await readFileOnIFPS(cid, ipfs),
-      })
-      .promise();
+    await storage.write(
+      cid,
+      await readFileOnIFPS(cid, ipfs),
+      "application/json"
+    );
   }
 };
 
@@ -169,11 +154,6 @@ export const handler = async (event: any) => {
       authorization: infura_auth,
     },
   });
-  const s3 = new S3({
-    apiVersion: "2006-03-01",
-    region: process.env.AWS_REGION,
-    params: { Bucket: process.env.SNAPSHOT_BUCKET_NAME },
-  });
 
   await _handler(
     theSpace,
@@ -181,6 +161,6 @@ export const handler = async (event: any) => {
     parseInt(process.env.SAFE_CONFIRMATIONS),
     ruleNameFromEvent(event),
     ipfs,
-    s3
+    new Storage(process.env.AWS_REGION, process.env.SNAPSHOT_BUCKET_NAME)
   );
 };

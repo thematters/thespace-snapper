@@ -1,11 +1,11 @@
 import type { IPFS } from "ipfs-core-types";
 import type { Event, Contract } from "ethers";
-import type S3 from "aws-sdk/clients/s3";
 import type { Delta } from "./types";
 
 import { PNG, PackerOptions } from "pngjs";
 
-import { applyChange, genDelta, readFileOnS3 } from "./utils";
+import { Storage } from "./storage";
+import { applyChange, genDelta } from "./utils";
 
 export const takeSnapshot = async (
   lastToBlock: number,
@@ -14,7 +14,7 @@ export const takeSnapshot = async (
   events: Event[],
   snapper: Contract,
   ipfs: IPFS,
-  s3: S3
+  storage: Storage
 ) => {
   // gen delta data
   console.time("genDelta");
@@ -22,7 +22,7 @@ export const takeSnapshot = async (
   console.timeEnd("genDelta");
 
   // gen snapshot png file
-  const lastSnapshot: Buffer = await readFileOnS3(lastSnapShotCid, s3);
+  const lastSnapshot: Buffer = await storage.read(lastSnapShotCid);
 
   const png = PNG.sync.read(lastSnapshot);
   applyChange(png, delta);
@@ -42,16 +42,8 @@ export const takeSnapshot = async (
   const { cid: snapshotCid_ } = await ipfs.add({ content: snapshot });
   const snapshotCid: string = snapshotCid_.toString();
   // upload to s3
-  await s3
-    .putObject(<S3.Types.PutObjectRequest>{ Key: deltaCid, Body: deltaString })
-    .promise();
-  await s3
-    .putObject(<S3.Types.PutObjectRequest>{
-      Key: snapshotCid,
-      Body: snapshot,
-      ContentType: "image/png",
-    })
-    .promise();
+  await storage.write(deltaCid, deltaString, "application/json");
+  await storage.write(snapshotCid, snapshot, "image/png");
 
   // take snapshot
   const tx = await snapper.takeSnapshot(
