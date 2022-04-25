@@ -51,9 +51,9 @@ const _handler = async (
   // upload snapshot and delta from ipfs to s3 if there is no file in bucket.
 
   if ((await storage.check(lastSnapShotCid)) === false) {
-    console.time("uploadSnapperFilesToS3");
-    await uploadSnapperFilesToS3(snapper, ipfs, storage);
-    console.timeEnd("uploadSnapperFilesToS3");
+    console.time("syncSnapperFiles");
+    await syncSnapperFiles(snapper, ipfs, storage);
+    console.timeEnd("syncSnapperFiles");
   }
 
   // note that fetchColorEvents may take long time with large blocks range.
@@ -88,7 +88,7 @@ const _handler = async (
   );
 };
 
-const uploadSnapperFilesToS3 = async (
+const syncSnapperFiles = async (
   snapper: Contract,
   ipfs: IPFS,
   storage: Storage
