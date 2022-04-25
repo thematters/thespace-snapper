@@ -36,15 +36,15 @@ const _handler = async (
   storage: ObjectStorage
 ) => {
   const latestBlock: number = await snapper.provider!.getBlockNumber();
+  const [_lastSnapshotBlock, lastSnapShotCid] =
+    await snapper.latestSnapshotInfo();
+  const lastSnapshotBlock = _lastSnapshotBlock.toNumber();
+  const newSnapshotBlock: number = latestBlock + 1 - safeConfirmations;
 
-  if (safeConfirmations > latestBlock) {
-    console.log(`blocks too few.`);
+  if (newSnapshotBlock <= lastSnapshotBlock) {
+    console.log(`new blocks too few.`);
     return;
   }
-
-  const [_lastToBlock, lastSnapShotCid] = await snapper.latestSnapshotInfo();
-  const lastToBlock = _lastToBlock.toNumber();
-  const stableBlock: number = latestBlock + 1 - safeConfirmations;
 
   // upload snapshot and delta from ipfs to s3 if there is no file in bucket.
 
@@ -57,7 +57,11 @@ const _handler = async (
   // note that fetchColorEvents may take long time with large blocks range.
 
   console.time("fetchColorEvents");
-  const events = await fetchColorEvents(theSpace, lastToBlock + 1, latestBlock);
+  const events = await fetchColorEvents(
+    theSpace,
+    lastSnapshotBlock + 1,
+    latestBlock
+  );
   console.timeEnd("fetchColorEvents");
 
   // determine whether to change cron rate.
@@ -76,10 +80,10 @@ const _handler = async (
   }
 
   await takeSnapshot(
-    lastToBlock,
-    stableBlock,
+    lastSnapshotBlock,
+    newSnapshotBlock,
     lastSnapShotCid,
-    events.filter((e) => e.blockNumber <= stableBlock),
+    events.filter((e) => e.blockNumber <= newSnapshotBlock),
     snapper,
     ipfs,
     storage

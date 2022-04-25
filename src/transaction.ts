@@ -7,8 +7,8 @@ import { ObjectStorage, IPFS } from "./storage";
 import { applyChange, genDelta } from "./utils";
 
 export const takeSnapshot = async (
-  lastToBlock: number,
-  stableBlock: number,
+  lastSnapshotBlock: number,
+  newSnapshotBlock: number,
   lastSnapShotCid: string,
   events: Event[],
   snapper: Contract,
@@ -44,17 +44,17 @@ export const takeSnapshot = async (
 
   // take snapshot
   const tx = await snapper.takeSnapshot(
-    lastToBlock,
-    stableBlock,
+    lastSnapshotBlock,
+    newSnapshotBlock,
     snapshotCid,
     deltaCid
   );
   await tx.wait();
 
   console.info(
-    `snapper::emit: Snapshot(blocknum: ${lastToBlock}, cid: ${snapshotCid} ).`
+    `snapper::emit: Snapshot(blocknum: ${newSnapshotBlock}, cid: ${snapshotCid} ).`
   );
   console.info(
-    `snapper::emit: Delta(blocknum: ${lastToBlock}, cid: ${deltaCid} ).`
+    `snapper::emit: Delta(blocknum: ${newSnapshotBlock}, cid: ${deltaCid} ).`
   );
 };
