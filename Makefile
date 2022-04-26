@@ -32,8 +32,8 @@ dist/handler.zip: dist/snapper-handler.js
 build-lambda: clean node_modules
 	npx webpack --env goal=aws-lambda
 
-delete-snapper:
-	aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation delete-stack --stack-name ${SNAPPER_STACK_NAME}
+# delete-snapper:
+# 	aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation delete-stack --stack-name ${SNAPPER_STACK_NAME}
 
 deploy: SHELL:=/bin/bash
 deploy: clean dist/handler.zip
