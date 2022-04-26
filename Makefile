@@ -33,21 +33,22 @@ build-lambda: clean node_modules
 	npx webpack --env goal=aws-lambda
 
 delete-snapper:
-	aws cloudformation delete-stack --stack-name ${SNAPPER_STACK_NAME}
+	aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation delete-stack --stack-name ${SNAPPER_STACK_NAME}
 
 deploy: SHELL:=/bin/bash
 deploy: clean dist/handler.zip
-	DEPLOYMENT_BUCKET=$$(aws s3 ls|grep '${DEPLOYMENT_STACK_NAME}'|awk '{ printf $$3}'); \
+	DEPLOYMENT_BUCKET=$$(aws --profile ${AWS_PROFILE} --region ${AWS_REGION} s3 ls|grep '${DEPLOYMENT_STACK_NAME}'|awk '{ printf $$3}'); \
 	[[ -z $$DEPLOYMENT_BUCKET ]] \
-		&& aws cloudformation deploy --stack-name ${DEPLOYMENT_STACK_NAME} --template-file ${DEPLOYMENT_TEMPLATE} \
+		&& aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation deploy --stack-name ${DEPLOYMENT_STACK_NAME} --template-file ${DEPLOYMENT_TEMPLATE} \
+		&& DEPLOYMENT_BUCKET=$$(aws --profile ${AWS_PROFILE} --region ${AWS_REGION} s3 ls|grep '${DEPLOYMENT_STACK_NAME}'|awk '{ printf $$3}') \
 		|| echo $$DEPLOYMENT_BUCKET; \
-	aws cloudformation package \
+	aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation package \
 		--s3-bucket $$DEPLOYMENT_BUCKET \
 		--template-file ${SNAPPER_TEMPLATE} \
 		--output-template-file ${PACKAGED_TEMPLATE}; \
-	aws cloudformation validate-template \
+	aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation validate-template \
 		--template-body file://${PACKAGED_TEMPLATE}; \
-	aws cloudformation deploy \
+	aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation deploy \
 		--stack-name ${SNAPPER_STACK_NAME} \
 		--template-file ${PACKAGED_TEMPLATE} \
 		--capabilities CAPABILITY_IAM \
@@ -63,5 +64,5 @@ deploy: clean dist/handler.zip
 	rm ${PACKAGED_TEMPLATE};
 
 output:
-	aws cloudformation describe-stacks --stack-name ${SNAPPER_STACK_NAME} --query Stacks[0].Outputs
+	aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation describe-stacks --stack-name ${SNAPPER_STACK_NAME} --query Stacks[0].Outputs
 
