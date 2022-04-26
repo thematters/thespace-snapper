@@ -145,7 +145,7 @@ export const applyChange = (png: PNG, delta: Delta): void => {
 
   for (const bcs of delta.delta) {
     for (const c of bcs.cs) {
-      const idx = c.i * 4;
+      const idx = (c.i - 1) * 4;
       const rgb = RGBs[c.c];
       png.data[idx] = (rgb >> 16) & 0xff;
       png.data[idx + 1] = (rgb >> 8) & 0xff;
