@@ -49,13 +49,13 @@ export const handler = async (event: any) => {
     thespaceABI,
     provider
   );
+
+  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   const snapper = new ethers.Contract(
     process.env.SNAPPER_ADDRESS,
     snapperABI,
-    provider
+    signer
   );
-  const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  snapper.connect(signer);
 
   await _handler(
     theSpace,
