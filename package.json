@@ -14,6 +14,7 @@
     "@typescript-eslint/parser": "^5.20.0",
     "eslint": "^8.13.0",
     "eslint-config-prettier": "^8.5.0",
+    "ganache": "^7.0.5",
     "husky": "^7.0.4",
     "jest": "^27.5.1",
     "lint-staged": "^12.4.0",

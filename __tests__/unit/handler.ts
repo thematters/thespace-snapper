@@ -1,6 +1,7 @@
 import type { Event } from "ethers";
 
 import { handler, hasEventsRecently } from "../../src/handler";
+import { genMockedProvider, genMockedTheSpace } from "../../utils/mock";
 
 describe("Test handler", function () {
   it("Throw error if env not provided", async () => {
@@ -18,6 +19,11 @@ describe("Test handler", function () {
     await expect(handler(payload)).rejects.toThrowError(
       "All environment variables must be provided"
     );
+  });
+  it("mocked con", async () => {
+    const provider = genMockedProvider();
+    const signer = provider.getSigner();
+    const thespace = await genMockedTheSpace(signer);
   });
 });
 
