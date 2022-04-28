@@ -9,19 +9,52 @@ import {
   abi as thespaceABI,
   bytecode as thespaceBytecode,
 } from "../abi/TheSpace.json";
-import { abi as snapperABI } from "../abi/Snapper.json";
+import {
+  abi as snapperABI,
+  bytecode as snapperBytecode,
+} from "../abi/Snapper.json";
 
 export const genMockedProvider = () => {
   return new ethers.providers.Web3Provider(<any>provider());
 };
 
-// export const genMockedSigner = (provider: ethers.Provider) => {
-//   return new ethers.Wallet(deployerPrivateKey, provider);
-// }
-
 export const genMockedTheSpace = async (signer: ethers.Signer) => {
-  const cf = new ethers.ContractFactory(tokenABI, tokenBytecode, signer);
-  return await cf.deploy();
-  // const cf = new ethers.ContractFactory(thespaceABI, thespaceBytecode, signer);
-  // return await cf.deploy(deployerAddress, deployerAddress, deployerAddress)
+  const tokenFactory = new ethers.ContractFactory(
+    tokenABI,
+    tokenBytecode,
+    signer
+  );
+  const token = await tokenFactory.deploy();
+  await token.deployTransaction.wait();
+  const thespaceFactory = new ethers.ContractFactory(
+    thespaceABI,
+    thespaceBytecode,
+    signer
+  );
+  const signerAddr = await signer.getAddress();
+  const thespace = await thespaceFactory.deploy(
+    token.address,
+    signerAddr,
+    signerAddr,
+    signerAddr
+  );
+  await thespace.deployTransaction.wait();
+  const tx = await token.approve(thespace.address, ethers.constants.MaxUint256);
+  await tx.wait();
+  return thespace;
+};
+
+export const genMockedSnapper = async (
+  signer: ethers.Signer,
+  block: number,
+  cid: string
+) => {
+  const snapperFactory = new ethers.ContractFactory(
+    snapperABI,
+    snapperBytecode,
+    signer
+  );
+  const snapper = await snapperFactory.deploy(block, cid);
+  await snapper.deployTransaction.wait();
+  return snapper;
 };

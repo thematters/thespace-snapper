@@ -1,7 +1,13 @@
 import type { Event } from "ethers";
 
 import { handler, hasEventsRecently } from "../../src/handler";
-import { genMockedProvider, genMockedTheSpace } from "../../utils/mock";
+import {
+  genMockedProvider,
+  genMockedTheSpace,
+  genMockedSnapper,
+} from "../../utils/mock";
+
+const CID0 = "QmNjJFu6uJLbwNK3dHYfSX4SL2vbdWarDcnLQmtX2Hm3i0";
 
 describe("Test handler", function () {
   it("Throw error if env not provided", async () => {
@@ -20,10 +26,15 @@ describe("Test handler", function () {
       "All environment variables must be provided"
     );
   });
-  it("mocked con", async () => {
+  it("mock stuff", async () => {
     const provider = genMockedProvider();
     const signer = provider.getSigner();
     const thespace = await genMockedTheSpace(signer);
+    const snapper = await genMockedSnapper(
+      signer,
+      thespace.deployTransaction.blockNumber!,
+      CID0
+    );
   });
 });
 
