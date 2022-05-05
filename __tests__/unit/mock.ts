@@ -4,15 +4,15 @@ import { ethers } from "ethers";
 import {
   abi as tokenABI,
   bytecode as tokenBytecode,
-} from "../abi/SpaceToken.json";
+} from "../../abi/SpaceToken.json";
 import {
   abi as thespaceABI,
   bytecode as thespaceBytecode,
-} from "../abi/TheSpace.json";
+} from "../../abi/TheSpace.json";
 import {
   abi as snapperABI,
   bytecode as snapperBytecode,
-} from "../abi/Snapper.json";
+} from "../../abi/Snapper.json";
 
 export const genMockedProvider = () => {
   return new ethers.providers.Web3Provider(<any>provider());

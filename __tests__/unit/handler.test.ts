@@ -1,11 +1,7 @@
 import type { Event } from "ethers";
 
 import { handler, hasEventsRecently } from "../../src/handler";
-import {
-  genMockedProvider,
-  genMockedTheSpace,
-  genMockedSnapper,
-} from "../../utils/mock";
+import { genMockedProvider, genMockedTheSpace, genMockedSnapper } from "./mock";
 
 const CID0 = "QmNjJFu6uJLbwNK3dHYfSX4SL2vbdWarDcnLQmtX2Hm3i0";
 
