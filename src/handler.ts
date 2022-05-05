@@ -10,7 +10,7 @@ import {
   fetchSnapshotEvents,
   fetchDeltaEvents,
 } from "./contracts";
-import { ruleNameFromEvent, changeCron } from "./cron";
+import { Cron, ruleNameFromEvent } from "./cron";
 import { abi as thespaceABI } from "../abi/TheSpace.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
 
@@ -41,6 +41,12 @@ export const handler = async (event: any) => {
   ) {
     throw Error("All environment variables must be provided");
   }
+
+  const cronRuleName = ruleNameFromEvent(event);
+  if (cronRuleName === null) {
+    throw Error("Not a schedule event");
+  }
+
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.PROVIDER_RPC_HTTP_URL
   );
@@ -61,7 +67,7 @@ export const handler = async (event: any) => {
     theSpace,
     snapper,
     parseInt(process.env.SAFE_CONFIRMATIONS),
-    ruleNameFromEvent(event),
+    new Cron(cronRuleName),
     new IPFS(
       process.env.INFURA_IPFS_PROJECT_ID,
       process.env.INFURA_IPFS_PROJECT_SECRET
@@ -74,7 +80,7 @@ const _handler = async (
   theSpace: Contract,
   snapper: Contract,
   safeConfirmations: number,
-  cronRuleName: string | null,
+  cron: Cron,
   ipfs: IPFS,
   storage: ObjectStorage
 ) => {
@@ -105,12 +111,10 @@ const _handler = async (
 
   // determine whether to change cron rate.
 
-  if (cronRuleName !== null) {
-    if (hasEventsRecently(events, latestBlock - LATEST_BLOCKS)) {
-      await changeCron(cronRuleName, INTERVAL_MIN);
-    } else {
-      await changeCron(cronRuleName, INTERVAL_MAX);
-    }
+  if (hasEventsRecently(events, latestBlock - LATEST_BLOCKS)) {
+    await cron.changeRate(INTERVAL_MIN);
+  } else {
+    await cron.changeRate(INTERVAL_MAX);
   }
 
   if (events.length < COLOR_EVENTS_THRESHOLD) {

@@ -4,13 +4,19 @@ export const ruleNameFromEvent = (event: any): string | null => {
   return event?.resources?.[0]?.split(":rule/", 2)?.[1] || null;
 };
 
-export const lengthenCron = async (ruleName: string, max: number) => {
-  await changeCron(ruleName, max);
-};
+export class Cron {
+  eventBrige: EventBridge;
+  ruleName: string;
 
-export const changeCron = async (ruleName: string, mins: number) => {
-  const eb = new EventBridge({ apiVersion: "2015-10-07" });
-  await eb
-    .putRule({ Name: ruleName, ScheduleExpression: `rate(${mins} minutes)` })
-    .promise();
-};
+  constructor(ruleName: string) {
+    this.eventBrige = new EventBridge({ apiVersion: "2015-10-07" });
+    this.ruleName = ruleName;
+  }
+
+  async changeRate(mins: number) {
+    const expression = mins === 1 ? "rate(1 minute)" : `rate(${mins} minutes)`;
+    await this.eventBrige
+      .putRule({ Name: this.ruleName, ScheduleExpression: expression })
+      .promise();
+  }
+}
