@@ -14,11 +14,11 @@ import {
   bytecode as snapperBytecode,
 } from "../../abi/Snapper.json";
 
-export const genMockedProvider = () => {
+export const genFakeProvider = () => {
   return new ethers.providers.Web3Provider(<any>provider());
 };
 
-export const genMockedTheSpace = async (signer: ethers.Signer) => {
+export const genFakeTheSpace = async (signer: ethers.Signer) => {
   const tokenFactory = new ethers.ContractFactory(
     tokenABI,
     tokenBytecode,
@@ -44,7 +44,7 @@ export const genMockedTheSpace = async (signer: ethers.Signer) => {
   return thespace;
 };
 
-export const genMockedSnapper = async (
+export const genFakeSnapper = async (
   signer: ethers.Signer,
   block: number,
   cid: string

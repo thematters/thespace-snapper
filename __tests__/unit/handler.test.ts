@@ -1,7 +1,7 @@
 import type { Event } from "ethers";
 
 import { handler, hasEventsRecently } from "../../src/handler";
-import { genMockedProvider, genMockedTheSpace, genMockedSnapper } from "./mock";
+import { genFakeProvider, genFakeTheSpace, genFakeSnapper } from "./utils";
 
 const CID0 = "QmNjJFu6uJLbwNK3dHYfSX4SL2vbdWarDcnLQmtX2Hm3i0";
 
@@ -23,10 +23,10 @@ describe("Test handler", function () {
     );
   });
   it("mock stuff", async () => {
-    const provider = genMockedProvider();
+    const provider = genFakeProvider();
     const signer = provider.getSigner();
-    const thespace = await genMockedTheSpace(signer);
-    const snapper = await genMockedSnapper(
+    const thespace = await genFakeTheSpace(signer);
+    const snapper = await genFakeSnapper(
       signer,
       thespace.deployTransaction.blockNumber!,
       CID0
