@@ -100,11 +100,7 @@ const _handler = async (
   // note that fetchColorEvents may take long time with large blocks range.
 
   console.time("fetchColorEvents");
-  const events = await fetchColorEvents(
-    theSpace,
-    lastSnapshotBlock + 1,
-    latestBlock
-  );
+  const events = await fetchColorEvents(theSpace, lastSnapshotBlock + 1);
   console.timeEnd("fetchColorEvents");
 
   // determine whether to change cron rate.

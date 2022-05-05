@@ -75,25 +75,29 @@ export const takeSnapshot = async (
 export const fetchColorEvents = async (
   theSpace: Contract,
   fromBlock: number,
-  toBlock: number
+  toBlock?: number
 ): Promise<Event[]> => {
-  // work around getLogs api 2k block range limit
-  const requests: Promise<Event[]>[] = [];
-  let _fromBlock: number = fromBlock;
-  let _toBlock: number = fromBlock + 1999;
-  while (_toBlock < toBlock) {
+  if (toBlock != null) {
+    // work around getLogs api 2k block range limit
+    const requests: Promise<Event[]>[] = [];
+    let _fromBlock: number = fromBlock;
+    let _toBlock: number = fromBlock + 1999;
+    while (_toBlock < toBlock) {
+      requests.push(
+        theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, _toBlock)
+      );
+      _fromBlock = _toBlock + 1;
+      _toBlock = _fromBlock + 1999;
+    }
     requests.push(
-      theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, _toBlock)
+      theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, toBlock)
     );
-    _fromBlock = _toBlock + 1;
-    _toBlock = _fromBlock + 1999;
+    console.log(`getLogs requests amount: ${requests.length}`);
+    const res = await Promise.all(requests);
+    return flatten(res);
+  } else {
+    return await theSpace.queryFilter(theSpace.filters.Color(), fromBlock);
   }
-  requests.push(
-    theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, toBlock)
-  );
-  console.log(`getLogs requests amount: ${requests.length}`);
-  const res = await Promise.all(requests);
-  return flatten(res);
 };
 
 export const fetchSnapshotEvents = async (
