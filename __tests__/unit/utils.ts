@@ -14,6 +14,18 @@ import {
   bytecode as snapperBytecode,
 } from "../../abi/Snapper.json";
 
+export const prepareEnv = () => {
+  process.env.PROVIDER_RPC_HTTP_URL = "https://";
+  process.env.PRIVATE_KEY = "private key";
+  process.env.THESPACE_ADDRESS = "0x01";
+  process.env.SNAPPER_ADDRESS = "0x02";
+  process.env.INFURA_IPFS_PROJECT_ID = "infura id";
+  process.env.INFURA_IPFS_PROJECT_SECRET = "infura secret";
+  process.env.SNAPSHOT_BUCKET_NAME = "bucket name";
+  process.env.SAFE_CONFIRMATIONS = "127";
+  process.env.AWS_REGION = "us-east-1";
+};
+
 export const genFakeProvider = () => {
   return new ethers.providers.Web3Provider(<any>provider());
 };
