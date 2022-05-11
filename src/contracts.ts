@@ -116,7 +116,7 @@ export const fetchDeltaEvents = async (snapper: Contract): Promise<Event[]> => {
 
 const genDelta = async (events: Event[]): Promise<Delta> => {
   const eventsByBlock = toPairs(groupBy(events, (e: Event) => e.blockNumber));
-  console.log(`Color events blocks amount: ${eventsByBlock.length}`);
+  console.log(`eth_getBlockByHash requests amount: ${eventsByBlock.length}`);
 
   const marshal = async (item: [string, Event[]]): Promise<BlockChange> => {
     const [bkNum, es] = item;
@@ -126,7 +126,7 @@ const genDelta = async (events: Event[]): Promise<Delta> => {
       bk_num: parseInt(bkNum),
       time: ISO,
       cs: es.map((e: Event) => ({
-        i: parseInt(e.args!.pixelId),
+        i: parseInt(e.args!.tokenId),
         c: parseInt(e.args!.color),
       })),
     };
