@@ -56,7 +56,9 @@ export const takeSnapshot = async (
   await storage.write(snapshotCid, snapshot, "image/png");
 
   // take snapshot
+  const regionId = 0;
   const tx = await snapper.takeSnapshot(
+    regionId,
     lastSnapshotBlock,
     newSnapshotBlock,
     snapshotCid,

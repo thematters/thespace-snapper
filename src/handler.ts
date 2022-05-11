@@ -11,7 +11,7 @@ import {
   fetchDeltaEvents,
 } from "./contracts";
 import { Cron, ruleNameFromEvent } from "./cron";
-import { abi as thespaceABI } from "../abi/TheSpace.json";
+import { abi as registryABI } from "../abi/TheSpaceRegistry.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
 
 // polyfill node14 for aws lambda
@@ -50,9 +50,9 @@ export const handler = async (event: any) => {
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.PROVIDER_RPC_HTTP_URL
   );
-  const theSpace = new ethers.Contract(
+  const registry = new ethers.Contract(
     process.env.THESPACE_ADDRESS,
-    thespaceABI,
+    registryABI,
     provider
   );
 
@@ -64,7 +64,7 @@ export const handler = async (event: any) => {
   );
 
   await _handler(
-    theSpace,
+    registry,
     snapper,
     parseInt(process.env.SAFE_CONFIRMATIONS),
     new Cron(cronRuleName),
@@ -77,16 +77,18 @@ export const handler = async (event: any) => {
 };
 
 const _handler = async (
-  theSpace: Contract,
+  registry: Contract,
   snapper: Contract,
   safeConfirmations: number,
   cron: Cron,
   ipfs: IPFS,
   storage: ObjectStorage
 ) => {
+  const regionId = 0;
   const latestBlock: number = await snapper.provider!.getBlockNumber();
-  const [_lastSnapshotBlock, lastSnapShotCid] =
-    await snapper.latestSnapshotInfo();
+  const [_lastSnapshotBlock, lastSnapShotCid] = await snapper[
+    "latestSnapshotInfo(uint256)"
+  ](regionId);
   const lastSnapshotBlock = _lastSnapshotBlock.toNumber();
   const newSnapshotBlock: number = latestBlock + 1 - safeConfirmations;
 
@@ -106,7 +108,7 @@ const _handler = async (
   // note that fetchColorEvents may take long time with large blocks range.
 
   console.time("fetchColorEvents");
-  const events = await fetchColorEvents(theSpace, lastSnapshotBlock + 1);
+  const events = await fetchColorEvents(registry, lastSnapshotBlock + 1);
   console.timeEnd("fetchColorEvents");
 
   // determine whether to change cron rate.

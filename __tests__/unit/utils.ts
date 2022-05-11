@@ -6,9 +6,9 @@ import {
   bytecode as tokenBytecode,
 } from "../../abi/SpaceToken.json";
 import {
-  abi as thespaceABI,
-  bytecode as thespaceBytecode,
-} from "../../abi/TheSpace.json";
+  abi as registryABI,
+  bytecode as registryBytecode,
+} from "../../abi/TheSpaceRegistry.json";
 import {
   abi as snapperABI,
   bytecode as snapperBytecode,
@@ -38,22 +38,22 @@ export const genFakeTheSpace = async (signer: ethers.Signer) => {
   );
   const token = await tokenFactory.deploy();
   await token.deployTransaction.wait();
-  const thespaceFactory = new ethers.ContractFactory(
-    thespaceABI,
-    thespaceBytecode,
+  const registryFactory = new ethers.ContractFactory(
+    registryABI,
+    registryBytecode,
     signer
   );
   const signerAddr = await signer.getAddress();
-  const thespace = await thespaceFactory.deploy(
-    token.address,
-    signerAddr,
-    signerAddr,
-    signerAddr
-  );
-  await thespace.deployTransaction.wait();
-  const tx = await token.approve(thespace.address, ethers.constants.MaxUint256);
-  await tx.wait();
-  return thespace;
+  //const registry = await registryFactory.deploy(
+  //  token.address,
+  //  signerAddr,
+  //  signerAddr,
+  //  signerAddr
+  //);
+  //await registry.deployTransaction.wait();
+  //const tx = await token.approve(registry.address, ethers.constants.MaxUint256);
+  //await tx.wait();
+  //return registry;
 };
 
 export const genFakeSnapper = async (

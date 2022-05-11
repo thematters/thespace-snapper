@@ -38,18 +38,18 @@ describe("handler", function () {
   });
 });
 
-describe("_handler", function () {
-  it("mock stuff", async () => {
-    const provider = genFakeProvider();
-    const signer = provider.getSigner();
-    const thespace = await genFakeTheSpace(signer);
-    const snapper = await genFakeSnapper(
-      signer,
-      thespace.deployTransaction.blockNumber!,
-      CID0
-    );
-  });
-});
+// describe("_handler", function () {
+//   it("mock stuff", async () => {
+//     const provider = genFakeProvider();
+//     const signer = provider.getSigner();
+//     const thespace = await genFakeTheSpace(signer);
+//     const snapper = await genFakeSnapper(
+//       signer,
+//       thespace.deployTransaction.blockNumber!,
+//       CID0
+//     );
+//   });
+// });
 
 // test helpers
 
