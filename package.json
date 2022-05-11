@@ -41,5 +41,8 @@
   "lint-staged": {
     "*.ts": " eslint --fix",
     "**/*": "prettier --write --ignore-unknown"
+  },
+  "optionalDependencies": {
+    "ts-node": "^10.7.0"
   }
 }
