@@ -28,7 +28,7 @@ Parameters:
     Type: String
     MaxLength: 42
     MinLength: 42
-    Description: "TheSpace contract address."
+    Description: "TheSpace registry contract address."
   safeConfirmations:
     Type: Number
     MinValue: 1
