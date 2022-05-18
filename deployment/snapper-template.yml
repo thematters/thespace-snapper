@@ -24,7 +24,7 @@ Parameters:
     MaxLength: 42
     MinLength: 42
     Description: "Snapper contract address."
-  thespaceAddress:
+  registryAddress:
     Type: String
     MaxLength: 42
     MinLength: 42
@@ -48,7 +48,7 @@ Resources:
           PROVIDER_RPC_HTTP_URL: !Ref providerRpcHttpUrl
           PRIVATE_KEY: !Ref privateKey
           SNAPPER_ADDRESS: !Ref snapperAddress
-          THESPACE_ADDRESS: !Ref thespaceAddress
+          REGISTRY_ADDRESS: !Ref registryAddress
           SAFE_CONFIRMATIONS: !Ref safeConfirmations
           SNAPSHOT_BUCKET_NAME: !Ref SnapshotBucket
           INFURA_IPFS_PROJECT_ID: !Ref infuraIpfsProjectId

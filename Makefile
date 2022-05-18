@@ -59,7 +59,7 @@ deploy: clean dist/handler.zip
 			infuraIpfsProjectId=${INFURA_IPFS_PROJECT_ID} \
 			infuraIpfsProjectSecret=${INFURA_IPFS_PROJECT_SECRET} \
 			snapperAddress=${SNAPPER_ADDRESS} \
-			thespaceAddress=${THESPACE_ADDRESS} \
+			registryAddress=${REGISTRY_ADDRESS} \
 			safeConfirmations=${SAFE_CONFIRMATIONS}; \
 	rm ${PACKAGED_TEMPLATE};
 

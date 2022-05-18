@@ -31,7 +31,7 @@ export const handler = async (event: any) => {
   if (
     process.env.PROVIDER_RPC_HTTP_URL === undefined ||
     process.env.PRIVATE_KEY === undefined ||
-    process.env.THESPACE_ADDRESS === undefined ||
+    process.env.REGISTRY_ADDRESS === undefined ||
     process.env.SNAPPER_ADDRESS === undefined ||
     process.env.INFURA_IPFS_PROJECT_ID === undefined ||
     process.env.INFURA_IPFS_PROJECT_SECRET === undefined ||
@@ -51,7 +51,7 @@ export const handler = async (event: any) => {
     process.env.PROVIDER_RPC_HTTP_URL
   );
   const registry = new ethers.Contract(
-    process.env.THESPACE_ADDRESS,
+    process.env.REGISTRY_ADDRESS,
     registryABI,
     provider
   );
