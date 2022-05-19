@@ -74,6 +74,7 @@ export class IPFS {
   }
   async writeAndReturnCid(data: Buffer | string): Promise<string> {
     const { cid: cid } = await this.ipfs.add({ content: data });
+    this.ipfs.pin.add(cid);
     return cid.toString();
   }
 }
