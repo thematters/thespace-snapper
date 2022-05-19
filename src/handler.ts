@@ -1,5 +1,6 @@
 import type { Contract, Event } from "ethers";
 
+import axios from "axios";
 import { ethers } from "ethers";
 import { AbortController } from "node-abort-controller";
 import { nth } from "lodash";
@@ -170,12 +171,14 @@ const syncSnapperFiles = async (
   }
 };
 
-const getFeeDataFromPolygon = async () => {
+export const getFeeDataFromPolygon = async () => {
   const defaultGasFee = ethers.BigNumber.from(30000000000);
   let maxFeePerGas, maxPriorityFeePerGas, gasPrice;
   try {
-    const resp = await fetch("https://gasstation-mainnet.matic.network/v2");
-    const data = await resp.json();
+    const { data } = await axios({
+      method: "get",
+      url: "https://gasstation-mainnet.matic.network/v2",
+    });
     maxFeePerGas = ethers.utils.parseUnits(
       Math.ceil(data.safeLow.maxFee) + "",
       "gwei"
@@ -184,8 +187,9 @@ const getFeeDataFromPolygon = async () => {
       Math.ceil(data.safeLow.maxPriorityFee) + "",
       "gwei"
     );
-    gasPrice = maxFeePerGas;
-  } catch {
+    gasPrice = null;
+  } catch (err) {
+    console.warn(err);
     maxFeePerGas = defaultGasFee;
     maxPriorityFeePerGas = defaultGasFee;
     gasPrice = defaultGasFee;

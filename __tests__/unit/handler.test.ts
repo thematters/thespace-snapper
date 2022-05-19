@@ -1,6 +1,12 @@
 import type { Event } from "ethers";
 
-import { handler, hasEventsRecently } from "../../src/handler";
+import axios from "axios";
+import { ethers } from "ethers";
+import {
+  handler,
+  hasEventsRecently,
+  getFeeDataFromPolygon,
+} from "../../src/handler";
 import {
   prepareEnv,
   genFakeProvider,
@@ -62,5 +68,12 @@ describe("hasEventsRecently", function () {
   });
   it("return true if have recent events", () => {
     expect(hasEventsRecently([{ blockNumber: 10 } as Event], 10)).toBe(true);
+  });
+});
+
+describe("getFeeDataFromPolygon", function () {
+  it("success", async () => {
+    const data = await getFeeDataFromPolygon();
+    expect(data.gasPrice).toBeNull();
   });
 });
