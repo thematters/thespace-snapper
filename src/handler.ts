@@ -123,8 +123,9 @@ const _handler = async (
     await cron.changeRate(INTERVAL_MAX);
   }
 
+  console.log(`new Color events amount: ${events.length}`);
   if (events.length < COLOR_EVENTS_THRESHOLD) {
-    console.log(`new Color events too few (count:${events.length}).`);
+    console.log(`new Color events too few, quit.`);
     return;
   }
 
