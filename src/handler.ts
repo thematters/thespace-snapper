@@ -57,6 +57,9 @@ export const handler = async (event: any) => {
   );
 
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  // work around polygon underpriced proplem, see https://github.com/ethers-io/ethers.js/issues/2828
+  signer.getFeeData = customGetFeeData;
+
   const snapper = new ethers.Contract(
     process.env.SNAPPER_ADDRESS,
     snapperABI,
@@ -165,4 +168,13 @@ const syncSnapperFiles = async (
     const cid = e.args!.cid;
     await storage.write(cid, await ipfs.read(cid), "application/json");
   }
+};
+
+const customGetFeeData = async () => {
+  const feePerGas = ethers.BigNumber.from(30000000000);
+  return {
+    maxFeePerGas: feePerGas,
+    maxPriorityFeePerGas: feePerGas,
+    gasPrice: feePerGas,
+  };
 };
