@@ -1,5 +1,6 @@
 import type { Event, Contract } from "ethers";
 
+import { ethers } from "ethers";
 import { PNG, PackerOptions } from "pngjs";
 import { groupBy, toPairs, flatten, chunk } from "lodash";
 import { ObjectStorage, IPFS } from "./storage";
@@ -56,15 +57,21 @@ export const takeSnapshot = async (
   await storage.write(snapshotCid, snapshot, "image/png");
 
   // take snapshot
+  console.time("take snapshot tx");
   const regionId = 0;
+  // work around polygon underpiced proplem, see https://github.com/ethers-io/ethers.js/issues/2828
+  const maxFeePerGas = ethers.BigNumber.from(30000000000);
+  const maxPriorityFeePerGas = ethers.BigNumber.from(30000000000);
   const tx = await snapper.takeSnapshot(
     regionId,
     lastSnapshotBlock,
     newSnapshotBlock,
     snapshotCid,
-    deltaCid
+    deltaCid,
+    { maxPriorityFeePerGas, maxFeePerGas }
   );
   await tx.wait();
+  console.timeEnd("take snapshot tx");
 
   console.info(
     `snapper::emit: Snapshot(blocknum: ${newSnapshotBlock}, cid: ${snapshotCid} ).`
