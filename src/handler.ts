@@ -105,7 +105,7 @@ const _handler = async (
     console.timeEnd("syncSnapperFiles");
   }
 
-  // note that fetchColorEvents may take long time with large blocks range.
+  // note that fetchColorEvents may take long time when too many Color events to fetch.
 
   console.time("fetchColorEvents");
   const events = await fetchColorEvents(registry, lastSnapshotBlock + 1);
