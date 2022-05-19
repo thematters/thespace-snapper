@@ -58,7 +58,7 @@ export const handler = async (event: any) => {
 
   const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
   // work around polygon underpriced proplem, see https://github.com/ethers-io/ethers.js/issues/2828
-  signer.getFeeData = customGetFeeData;
+  signer.getFeeData = getFeeDataFromPolygon;
 
   const snapper = new ethers.Contract(
     process.env.SNAPPER_ADDRESS,
@@ -170,11 +170,29 @@ const syncSnapperFiles = async (
   }
 };
 
-const customGetFeeData = async () => {
-  const feePerGas = ethers.BigNumber.from(30000000000);
+const getFeeDataFromPolygon = async () => {
+  const defaultGasFee = ethers.BigNumber.from(30000000000);
+  let maxFeePerGas, maxPriorityFeePerGas, gasPrice;
+  try {
+    const resp = await fetch("https://gasstation-mainnet.matic.network/v2");
+    const data = await resp.json();
+    maxFeePerGas = ethers.utils.parseUnits(
+      Math.ceil(data.safeLow.maxFee) + "",
+      "gwei"
+    );
+    maxPriorityFeePerGas = ethers.utils.parseUnits(
+      Math.ceil(data.safeLow.maxPriorityFee) + "",
+      "gwei"
+    );
+    gasPrice = maxFeePerGas;
+  } catch {
+    maxFeePerGas = defaultGasFee;
+    maxPriorityFeePerGas = defaultGasFee;
+    gasPrice = defaultGasFee;
+  }
   return {
-    maxFeePerGas: feePerGas,
-    maxPriorityFeePerGas: feePerGas,
-    gasPrice: feePerGas,
+    maxFeePerGas,
+    maxPriorityFeePerGas,
+    gasPrice,
   };
 };
