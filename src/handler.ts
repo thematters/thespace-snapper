@@ -24,7 +24,7 @@ globalThis.AbortController = AbortController;
 const LATEST_BLOCKS = 300; // roughly 10 mins
 const INTERVAL_MIN = 20; // min.
 const INTERVAL_MAX = 100; // min.
-const COLOR_EVENTS_THRESHOLD = 100;
+const COLOR_EVENTS_THRESHOLD = 3000;
 
 // main
 
