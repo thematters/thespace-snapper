@@ -10,13 +10,14 @@ type Change = {
 };
 
 export type BlockChange = {
-  bk_num: number;
+  bk: number;
   time: string;
   cs: Change[];
 };
 
 export type Delta = {
   delta: BlockChange[];
+  prev_cid: string | null;
 };
 
 export const takeSnapshot = async (
@@ -30,7 +31,10 @@ export const takeSnapshot = async (
 ) => {
   // gen delta data
   console.time("genDelta");
-  const delta: Delta = await genDelta(events);
+  const delta: Delta = await genDelta(
+    events,
+    await getLastDeltaCid(snapper, lastSnapshotBlock)
+  );
   console.timeEnd("genDelta");
 
   // gen snapshot png file
@@ -116,7 +120,25 @@ export const fetchDeltaEvents = async (snapper: Contract): Promise<Event[]> => {
 
 // helpers
 
-const genDelta = async (events: Event[]): Promise<Delta> => {
+const getLastDeltaCid = async (
+  snapper: Contract,
+  lastSnapshotBlock: number
+): Promise<string | null> => {
+  const deltaEvents = await snapper.queryFilter(
+    snapper.filters.Delta(),
+    lastSnapshotBlock
+  );
+  if (deltaEvents.length === 0) {
+    return null;
+  } else {
+    return deltaEvents[deltaEvents.length - 1].args!.cid;
+  }
+};
+
+const genDelta = async (
+  events: Event[],
+  lastDeltaCid: string | null
+): Promise<Delta> => {
   const eventsByBlock = toPairs(groupBy(events, (e: Event) => e.blockNumber));
   console.log(`eth_getBlockByHash requests amount: ${eventsByBlock.length}`);
 
@@ -125,7 +147,7 @@ const genDelta = async (events: Event[]): Promise<Delta> => {
     const timestamp: number = (await es[0].getBlock()).timestamp;
     const ISO: string = new Date(timestamp * 1000).toISOString();
     return {
-      bk_num: parseInt(bkNum),
+      bk: parseInt(bkNum),
       time: ISO,
       cs: es.map((e: Event) => ({
         i: parseInt(e.args!.tokenId),
@@ -141,7 +163,7 @@ const genDelta = async (events: Event[]): Promise<Delta> => {
     res.push(await Promise.all(chunk.map(marshal)));
   }
 
-  return { delta: flatten(res) };
+  return { delta: flatten(res), prev_cid: lastDeltaCid };
 };
 
 export const applyChange = (png: PNG, delta: Delta): void => {
