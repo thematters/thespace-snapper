@@ -1,3 +1,6 @@
+import type { Cron } from "../../src/cron";
+import type { Storage, IPFS } from "../../src/storage";
+
 import { provider } from "ganache";
 import { ethers } from "ethers";
 
@@ -30,7 +33,7 @@ export const genFakeProvider = () => {
   return new ethers.providers.Web3Provider(<any>provider());
 };
 
-export const genFakeTheSpace = async (signer: ethers.Signer) => {
+export const genFakeTheSpaceRegistry = async (signer: ethers.Signer) => {
   const tokenFactory = new ethers.ContractFactory(
     tokenABI,
     tokenBytecode,
@@ -43,17 +46,19 @@ export const genFakeTheSpace = async (signer: ethers.Signer) => {
     registryBytecode,
     signer
   );
-  const signerAddr = await signer.getAddress();
-  //const registry = await registryFactory.deploy(
-  //  token.address,
-  //  signerAddr,
-  //  signerAddr,
-  //  signerAddr
-  //);
-  //await registry.deployTransaction.wait();
-  //const tx = await token.approve(registry.address, ethers.constants.MaxUint256);
-  //await tx.wait();
-  //return registry;
+  const registry = await registryFactory.deploy(
+    "Kcnalp",
+    "KLP",
+    1000000,
+    75,
+    500,
+    10000000000,
+    token.address
+  );
+  await registry.deployTransaction.wait();
+  const tx = await token.approve(registry.address, ethers.constants.MaxUint256);
+  await tx.wait();
+  return registry;
 };
 
 export const genFakeSnapper = async (
@@ -66,7 +71,36 @@ export const genFakeSnapper = async (
     snapperBytecode,
     signer
   );
-  const snapper = await snapperFactory.deploy(block, cid);
+  const snapper = await snapperFactory.deploy();
   await snapper.deployTransaction.wait();
+  await snapper.initRegion(0, block, cid);
   return snapper;
 };
+
+export class CronStub implements Cron {
+  async changeRate(mins: number): Promise<void> {
+    console.debug(mins);
+  }
+}
+
+export class S3StorageStub implements Storage {
+  async check(key: string): Promise<boolean> {
+    return true;
+  }
+  async read(key: string): Promise<Buffer> {
+    return new Buffer("");
+  }
+  async write(key: string, data: Buffer | string, contentType: string) {
+    console.debug(key);
+    console.debug(data);
+  }
+}
+
+export class IpfsStub implements IPFS {
+  async read(key: string): Promise<Buffer> {
+    return new Buffer("");
+  }
+  async writeAndReturnCid(data: Buffer | string): Promise<string> {
+    return "QmX8acbms98niW1XT39cYgsDJJvs5F2JJmv8fkAuccWNYN";
+  }
+}

@@ -1,4 +1,6 @@
-import type { Event } from "ethers";
+import type { Contract, Event } from "ethers";
+import type { Cron } from "../../src/cron";
+import type { Storage, IPFS } from "../../src/storage";
 
 import axios from "axios";
 import { ethers } from "ethers";
@@ -10,8 +12,11 @@ import {
 import {
   prepareEnv,
   genFakeProvider,
-  genFakeTheSpace,
+  genFakeTheSpaceRegistry,
   genFakeSnapper,
+  CronStub,
+  S3StorageStub,
+  IpfsStub,
 } from "./utils";
 
 const CID0 = "QmNjJFu6uJLbwNK3dHYfSX4SL2vbdWarDcnLQmtX2Hm3i0";
@@ -44,18 +49,29 @@ describe("handler", function () {
   });
 });
 
-// describe("_handler", function () {
-//   it("mock stuff", async () => {
-//     const provider = genFakeProvider();
-//     const signer = provider.getSigner();
-//     const thespace = await genFakeTheSpace(signer);
-//     const snapper = await genFakeSnapper(
-//       signer,
-//       thespace.deployTransaction.blockNumber!,
-//       CID0
-//     );
-//   });
-// });
+describe("_handler", function () {
+  let registry: Contract;
+  let snapper: Contract;
+  let cron: Cron;
+  let storage: Storage;
+  let ipfs: IPFS;
+  beforeEach(async () => {
+    const provider = genFakeProvider();
+    const signer = provider.getSigner();
+    registry = await genFakeTheSpaceRegistry(signer);
+    snapper = await genFakeSnapper(
+      signer,
+      registry.deployTransaction.blockNumber!,
+      CID0
+    );
+    cron = new CronStub();
+    storage = new S3StorageStub();
+    ipfs = new IpfsStub();
+  });
+  it("test", async () => {
+    await cron.changeRate(111);
+  });
+});
 
 // test helpers
 

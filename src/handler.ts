@@ -1,17 +1,19 @@
 import type { Contract, Event } from "ethers";
+import type { Cron } from "./cron";
+import type { Storage, IPFS } from "./storage";
 
 import axios from "axios";
 import { ethers } from "ethers";
 import { AbortController } from "node-abort-controller";
 import { nth } from "lodash";
-import { ObjectStorage, IPFS } from "./storage";
+import { S3Storage, IpfsStorage } from "./storage";
 import {
   takeSnapshot,
   fetchColorEvents,
   fetchSnapshotEvents,
   fetchDeltaEvents,
 } from "./contracts";
-import { Cron, ruleNameFromEvent } from "./cron";
+import { LambdaCron, ruleNameFromEvent } from "./cron";
 import { abi as registryABI } from "../abi/TheSpaceRegistry.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
 
@@ -71,12 +73,12 @@ export const handler = async (event: any) => {
     registry,
     snapper,
     parseInt(process.env.SAFE_CONFIRMATIONS),
-    new Cron(cronRuleName),
-    new IPFS(
+    new LambdaCron(cronRuleName),
+    new IpfsStorage(
       process.env.INFURA_IPFS_PROJECT_ID,
       process.env.INFURA_IPFS_PROJECT_SECRET
     ),
-    new ObjectStorage(process.env.AWS_REGION, process.env.SNAPSHOT_BUCKET_NAME)
+    new S3Storage(process.env.AWS_REGION, process.env.SNAPSHOT_BUCKET_NAME)
   );
 };
 
@@ -86,7 +88,7 @@ const _handler = async (
   safeConfirmations: number,
   cron: Cron,
   ipfs: IPFS,
-  storage: ObjectStorage
+  storage: Storage
 ) => {
   const regionId = 0;
   const latestBlock: number = await snapper.provider!.getBlockNumber();
@@ -160,7 +162,7 @@ export const hasEventsRecently = (
 const syncSnapperFiles = async (
   snapper: Contract,
   ipfs: IPFS,
-  storage: ObjectStorage
+  storage: Storage
 ) => {
   for (const e of await fetchSnapshotEvents(snapper)) {
     const cid = e.args!.cid;

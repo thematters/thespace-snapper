@@ -1,8 +1,8 @@
 import type { Event, Contract } from "ethers";
+import type { Storage, IPFS } from "./storage";
 
 import { PNG, PackerOptions } from "pngjs";
 import { groupBy, toPairs, flatten, chunk } from "lodash";
-import { ObjectStorage, IPFS } from "./storage";
 
 type Change = {
   i: number;
@@ -27,7 +27,7 @@ export const takeSnapshot = async (
   events: Event[],
   snapper: Contract,
   ipfs: IPFS,
-  storage: ObjectStorage
+  storage: Storage
 ) => {
   // gen delta data
   console.time("genDelta");

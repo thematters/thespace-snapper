@@ -3,7 +3,26 @@ import type { IPFS as _IPFS } from "ipfs-core-types";
 import { create as createIPFS } from "ipfs-http-client";
 import S3 from "aws-sdk/clients/s3";
 
-export class ObjectStorage {
+// interfaces
+
+export interface Storage {
+  check: (key: string) => Promise<boolean>;
+  read: (key: string) => Promise<Buffer>;
+  write: (
+    key: string,
+    data: Buffer | string,
+    contentType: string
+  ) => Promise<void>;
+}
+
+export interface IPFS {
+  read: (key: string) => Promise<Buffer>;
+  writeAndReturnCid: (data: Buffer | string) => Promise<string>;
+}
+
+// impls
+
+export class S3Storage implements Storage {
   s3: S3;
 
   constructor(region: string, bucketName: string) {
@@ -50,7 +69,7 @@ export class ObjectStorage {
   }
 }
 
-export class IPFS {
+export class IpfsStorage implements IPFS {
   ipfs: _IPFS;
 
   constructor(infuraId: string, infuraSecret: string) {
