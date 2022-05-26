@@ -171,10 +171,10 @@ Resources:
   CfDistributionWithAOI:
     Type: "AWS::CloudFront::Distribution"
     Metadata:
-      Comment: "A simple CloudFront distribution with an S3 origin"
+      Comment: "Snapper CloudFront distribution for snapshot bucket"
     Properties:
       DistributionConfig:
-        Comment: "A simple distribution with an S3 origin"
+        Comment: "Snapper CloudFront distribution for snapshot bucket"
         DefaultCacheBehavior:
           AllowedMethods:
             - "HEAD"
@@ -182,7 +182,7 @@ Resources:
           CachedMethods:
             - "HEAD"
             - "GET"
-          Compress: false
+          Compress: True
           DefaultTTL: 86400
           ForwardedValues:
             Cookies:
