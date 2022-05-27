@@ -53,6 +53,7 @@ _note: color delta and map snapshot are generated using the same interval._
 ## snapper-contract
 
 - receive meta info from snapper and emit events
+- snapper-contract repo: https://github.com/thematters/contracts/tree/develop/src/Snapper
 
 ## data structures
 
