@@ -1,5 +1,9 @@
 # serverless-snapper
 
+## Design
+
+see [design.md](./docs/design.md)
+
 ## Development
 
 ### Setting up
