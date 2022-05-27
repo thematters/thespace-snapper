@@ -17,8 +17,8 @@ export type BlockChange = {
 
 export type Delta = {
   delta: BlockChange[];
-  prev_delta: string | null;
-  prev_snapshot: string;
+  prev: string | null;
+  snapshot: string;
 };
 
 export const takeSnapshot = async (
@@ -168,8 +168,8 @@ const genDelta = async (
 
   return {
     delta: flatten(res),
-    prev_delta: lastDeltaCid,
-    prev_snapshot: lastSnapshotCid,
+    prev: lastDeltaCid,
+    snapshot: lastSnapshotCid,
   };
 };
 

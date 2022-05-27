@@ -98,8 +98,8 @@ _note: color delta and map snapshot are generated using the same interval._
         },
         ...
     ],
-    prev_delta: string?                   // ipfs cid of previous delta, null for first delta
-    prev_snapshot: string                   // ipfs cid of previous snapshot
+    prev: string?                   // ipfs cid of previous delta, null for first delta
+    snapshot: string                   // ipfs cid of previous snapshot
 }
 ```
 
