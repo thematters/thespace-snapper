@@ -6,6 +6,7 @@ import axios from "axios";
 import { ethers } from "ethers";
 import {
   handler,
+  _handler,
   hasEventsRecently,
   getFeeDataFromPolygon,
 } from "../../src/handler";
@@ -50,13 +51,14 @@ describe("handler", function () {
 });
 
 describe("_handler", function () {
+  let provider: ethers.providers.Web3Provider;
   let registry: Contract;
   let snapper: Contract;
   let cron: Cron;
   let storage: Storage;
   let ipfs: IPFS;
   beforeEach(async () => {
-    const provider = genFakeProvider();
+    provider = genFakeProvider();
     const signer = provider.getSigner();
     registry = await genFakeTheSpaceRegistry(signer);
     snapper = await genFakeSnapper(
@@ -68,8 +70,11 @@ describe("_handler", function () {
     storage = new S3StorageStub();
     ipfs = new IpfsStub();
   });
-  it("test", async () => {
-    await cron.changeRate(111);
+  it("log 'new blocks too few.'", async () => {
+    console.log(await provider.getBlockNumber());
+    const consoleSpy = jest.spyOn(console, "log");
+    await _handler(registry, snapper, 10, cron, ipfs, storage);
+    expect(consoleSpy).toHaveBeenCalledWith("new blocks too few.");
   });
 });
 

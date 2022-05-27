@@ -29,6 +29,8 @@ export const prepareEnv = () => {
   process.env.AWS_REGION = "us-east-1";
 };
 
+// test doubles
+
 export const genFakeProvider = () => {
   return new ethers.providers.Web3Provider(<any>provider());
 };
@@ -93,6 +95,12 @@ export class S3StorageStub implements Storage {
   async write(key: string, data: Buffer | string, contentType: string) {
     console.debug(key);
     console.debug(data);
+  }
+}
+
+export class EmptyS3StorageStub extends S3StorageStub {
+  async check(key: string): Promise<boolean> {
+    return false;
   }
 }
 

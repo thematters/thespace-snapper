@@ -82,7 +82,7 @@ export const handler = async (event: any) => {
   );
 };
 
-const _handler = async (
+export const _handler = async (
   registry: Contract,
   snapper: Contract,
   safeConfirmations: number,
