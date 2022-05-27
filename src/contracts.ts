@@ -17,7 +17,8 @@ export type BlockChange = {
 
 export type Delta = {
   delta: BlockChange[];
-  prev_cid: string | null;
+  prev_delta: string | null;
+  prev_snapshot: string;
 };
 
 export const takeSnapshot = async (
@@ -33,7 +34,8 @@ export const takeSnapshot = async (
   console.time("genDelta");
   const delta: Delta = await genDelta(
     events,
-    await getLastDeltaCid(snapper, lastSnapshotBlock)
+    await getLastDeltaCid(snapper, lastSnapshotBlock),
+    lastSnapShotCid
   );
   console.timeEnd("genDelta");
 
@@ -137,7 +139,8 @@ const getLastDeltaCid = async (
 
 const genDelta = async (
   events: Event[],
-  lastDeltaCid: string | null
+  lastDeltaCid: string | null,
+  lastSnapshotCid: string
 ): Promise<Delta> => {
   const eventsByBlock = toPairs(groupBy(events, (e: Event) => e.blockNumber));
   console.log(`eth_getBlockByHash requests amount: ${eventsByBlock.length}`);
@@ -163,7 +166,11 @@ const genDelta = async (
     res.push(await Promise.all(chunk.map(marshal)));
   }
 
-  return { delta: flatten(res), prev_cid: lastDeltaCid };
+  return {
+    delta: flatten(res),
+    prev_delta: lastDeltaCid,
+    prev_snapshot: lastSnapshotCid,
+  };
 };
 
 export const applyChange = (png: PNG, delta: Delta): void => {
