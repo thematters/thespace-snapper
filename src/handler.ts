@@ -90,14 +90,18 @@ export const _handler = async (
   ipfs: IPFS,
   storage: Storage
 ) => {
+  if (safeConfirmations < 1) {
+    throw Error("Invalid safeConfirmations value");
+  }
+
   const regionId = 0;
   const latestBlock: number = await snapper.provider!.getBlockNumber();
   const [_lastSnapshotBlock, lastSnapShotCid] = await snapper[
     "latestSnapshotInfo(uint256)"
   ](regionId);
   const lastSnapshotBlock = _lastSnapshotBlock.toNumber();
-  const newSnapshotBlock: number = latestBlock + 1 - safeConfirmations;
 
+  const newSnapshotBlock: number = latestBlock + 1 - safeConfirmations; // note that latestBlock's block confirmations is 1
   if (newSnapshotBlock <= lastSnapshotBlock) {
     console.log(`new blocks too few.`);
     return;

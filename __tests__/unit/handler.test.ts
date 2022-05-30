@@ -18,6 +18,7 @@ import {
   CronStub,
   S3StorageStub,
   IpfsStub,
+  EmptyS3StorageStub,
 } from "./utils";
 
 const CID0 = "QmNjJFu6uJLbwNK3dHYfSX4SL2vbdWarDcnLQmtX2Hm3i0";
@@ -53,6 +54,7 @@ describe("handler", function () {
 describe("_handler", function () {
   let provider: ethers.providers.Web3Provider;
   let registry: Contract;
+  let initSnapshotBlock: number;
   let snapper: Contract;
   let cron: Cron;
   let storage: Storage;
@@ -61,20 +63,26 @@ describe("_handler", function () {
     provider = genFakeProvider();
     const signer = provider.getSigner();
     registry = await genFakeTheSpaceRegistry(signer);
-    snapper = await genFakeSnapper(
-      signer,
-      registry.deployTransaction.blockNumber!,
-      CID0
-    );
+    initSnapshotBlock = registry.deployTransaction.blockNumber!;
+    snapper = await genFakeSnapper(signer, initSnapshotBlock, CID0);
     cron = new CronStub();
     storage = new S3StorageStub();
     ipfs = new IpfsStub();
   });
+  it("throw Error if safeConfirmations is 0", async () => {
+    await expect(
+      _handler(registry, snapper, 0, cron, ipfs, storage)
+    ).rejects.toThrowError("Invalid safeConfirmations value");
+  });
   it("log 'new blocks too few.'", async () => {
-    console.log(await provider.getBlockNumber());
     const consoleSpy = jest.spyOn(console, "log");
     await _handler(registry, snapper, 10, cron, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("new blocks too few.");
+  });
+  it("sync files from ipfs to s3 if s3 is empty", async () => {
+    const consoleSpy = jest.spyOn(console, "time");
+    await _handler(registry, snapper, 1, cron, ipfs, new EmptyS3StorageStub());
+    expect(consoleSpy).toHaveBeenCalledWith("syncSnapperFiles");
   });
 });
 
