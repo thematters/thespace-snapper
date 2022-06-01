@@ -43,7 +43,7 @@ export const takeSnapshot = async (
   const lastSnapshot: Buffer = await storage.read(lastSnapShotCid);
 
   const png = PNG.sync.read(lastSnapshot);
-  applyChange(png, delta);
+  applyChange(png, events);
 
   const options: PackerOptions = {
     colorType: 2,
@@ -173,21 +173,21 @@ const genDelta = async (
   };
 };
 
-export const applyChange = (png: PNG, delta: Delta): void => {
+export const applyChange = (png: PNG, events: Event[]): void => {
   const RGBs = [
     0x000000, 0xffffff, 0xd4d7d9, 0x898d90, 0x784102, 0xd26500, 0xff8a00,
     0xffde2f, 0x159800, 0x8de763, 0x58eaf4, 0x059df2, 0x034cba, 0x9503c9,
     0xd90041, 0xff9fab,
   ];
 
-  for (const bcs of delta.delta) {
-    for (const c of bcs.cs) {
-      const idx = (c.i - 1) * 4;
-      const rgb = RGBs[c.c - 1];
-      png.data[idx] = (rgb >> 16) & 0xff;
-      png.data[idx + 1] = (rgb >> 8) & 0xff;
-      png.data[idx + 2] = rgb & 0xff;
-      png.data[idx + 3] = 0xff;
-    }
+  for (const e of events) {
+    const tokenId = parseInt(e.args!.tokenId);
+    const color = parseInt(e.args!.color);
+    const idx = (tokenId - 1) * 4;
+    const rgb = RGBs[color - 1];
+    png.data[idx] = (rgb >> 16) & 0xff;
+    png.data[idx + 1] = (rgb >> 8) & 0xff;
+    png.data[idx + 2] = rgb & 0xff;
+    png.data[idx + 3] = 0xff;
   }
 };
