@@ -174,20 +174,27 @@ const genDelta = async (
 };
 
 export const applyChange = (png: PNG, events: Event[]): void => {
+  for (const e of events) {
+    const tokenId = parseInt(e.args!.tokenId);
+    const color = parseInt(e.args!.color);
+    const idx = (tokenId - 1) * 4;
+    const rgb = getRGB(color);
+    png.data[idx] = (rgb >> 16) & 0xff;
+    png.data[idx + 1] = (rgb >> 8) & 0xff;
+    png.data[idx + 2] = rgb & 0xff;
+    png.data[idx + 3] = 0xff;
+  }
+};
+
+export const getRGB = (color: number): number => {
   const RGBs = [
     0x000000, 0xffffff, 0xd4d7d9, 0x898d90, 0x784102, 0xd26500, 0xff8a00,
     0xffde2f, 0x159800, 0x8de763, 0x58eaf4, 0x059df2, 0x034cba, 0x9503c9,
     0xd90041, 0xff9fab,
   ];
-
-  for (const e of events) {
-    const tokenId = parseInt(e.args!.tokenId);
-    const color = parseInt(e.args!.color);
-    const idx = (tokenId - 1) * 4;
-    const rgb = RGBs[color - 1];
-    png.data[idx] = (rgb >> 16) & 0xff;
-    png.data[idx + 1] = (rgb >> 8) & 0xff;
-    png.data[idx + 2] = rgb & 0xff;
-    png.data[idx + 3] = 0xff;
+  if (color > 16 || color == 0) {
+    return RGBs[0];
+  } else {
+    return RGBs[color - 1];
   }
 };
