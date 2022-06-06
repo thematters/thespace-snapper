@@ -125,8 +125,10 @@ export const _handler = async (
 
   if (await hasEventsRecently(colors)) {
     await cron.changeRate(INTERVAL_MIN);
+    console.log(`cron set to ${INTERVAL_MIN} mins`);
   } else {
     await cron.changeRate(INTERVAL_MAX);
+    console.log(`cron set to ${INTERVAL_MAX} mins`);
   }
 
   console.log(`new Color events amount: ${colors.length}`);
