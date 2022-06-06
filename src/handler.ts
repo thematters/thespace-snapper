@@ -87,7 +87,6 @@ export const _handler = async (
   ipfs: IPFS,
   storage: Storage
 ) => {
-  const LATEST_BLOCKS = 300; // roughly 10 mins
   const INTERVAL_MIN = 15; // mins
   const INTERVAL_MAX = 60; // mins
 
@@ -124,7 +123,7 @@ export const _handler = async (
 
   // determine whether to change cron rate.
 
-  if (hasEventsRecently(colors, latestBlock - LATEST_BLOCKS)) {
+  if (await hasEventsRecently(colors)) {
     await cron.changeRate(INTERVAL_MIN);
   } else {
     await cron.changeRate(INTERVAL_MAX);
@@ -149,15 +148,16 @@ export const _handler = async (
 
 // helpers
 
-export const hasEventsRecently = (
-  events: Event[],
-  recentBlock: number
-): boolean => {
-  const lastBlock = nth(events, -1)?.blockNumber;
-  if (lastBlock == undefined) {
+const hasEventsRecently = async (events: Event[]): Promise<boolean> => {
+  if (events.length == 0) {
     return false;
   }
-  if (lastBlock >= recentBlock) {
+  const lastestBlock = await nth(events, -1)?.getBlock();
+  if (lastestBlock == undefined) {
+    return false;
+  }
+  const tenMins = 10 * 60 * 1000;
+  if (Date.now() - lastestBlock.timestamp * 1000 <= tenMins) {
     return true;
   } else {
     return false;

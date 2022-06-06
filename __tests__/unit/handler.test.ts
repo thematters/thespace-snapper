@@ -4,12 +4,7 @@ import type { Storage, IPFS } from "../../src/storage";
 
 import axios from "axios";
 import { ethers } from "ethers";
-import {
-  handler,
-  _handler,
-  hasEventsRecently,
-  getFeeDataFromPolygon,
-} from "../../src/handler";
+import { handler, _handler, getFeeDataFromPolygon } from "../../src/handler";
 import {
   prepareEnv,
   genFakeProvider,
@@ -95,18 +90,6 @@ describe("_handler", function () {
 });
 
 // test helpers
-
-describe("hasEventsRecently", function () {
-  it("return false if events is empty", () => {
-    expect(hasEventsRecently([], 10)).toBe(false);
-  });
-  it("return false if have no recent events", () => {
-    expect(hasEventsRecently([{ blockNumber: 1 } as Event], 10)).toBe(false);
-  });
-  it("return true if have recent events", () => {
-    expect(hasEventsRecently([{ blockNumber: 10 } as Event], 10)).toBe(true);
-  });
-});
 
 describe("getFeeDataFromPolygon", function () {
   it("success", async () => {
