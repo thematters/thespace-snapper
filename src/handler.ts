@@ -21,13 +21,6 @@ import { abi as snapperABI } from "../abi/Snapper.json";
 
 globalThis.AbortController = AbortController;
 
-// constants
-
-const LATEST_BLOCKS = 300; // roughly 10 mins
-const INTERVAL_MIN = 15; // mins
-const INTERVAL_MAX = 60; // mins
-const COLOR_EVENTS_THRESHOLD = 3000;
-
 // main
 
 export const handler = async (event: any) => {
@@ -44,6 +37,8 @@ export const handler = async (event: any) => {
   ) {
     throw Error("All environment variables must be provided");
   }
+
+  const COLOR_EVENTS_SNAPSHOT_THRESHOLD = 3000;
 
   const cronRuleName = ruleNameFromEvent(event);
   if (cronRuleName === null) {
@@ -70,9 +65,10 @@ export const handler = async (event: any) => {
   );
 
   await _handler(
+    parseInt(process.env.SAFE_CONFIRMATIONS),
+    COLOR_EVENTS_SNAPSHOT_THRESHOLD,
     registry,
     snapper,
-    parseInt(process.env.SAFE_CONFIRMATIONS),
     new LambdaCron(cronRuleName),
     new IpfsStorage(
       process.env.INFURA_IPFS_PROJECT_ID,
@@ -83,13 +79,18 @@ export const handler = async (event: any) => {
 };
 
 export const _handler = async (
+  safeConfirmations: number,
+  snapshotThreshold: number,
   registry: Contract,
   snapper: Contract,
-  safeConfirmations: number,
   cron: Cron,
   ipfs: IPFS,
   storage: Storage
 ) => {
+  const LATEST_BLOCKS = 300; // roughly 10 mins
+  const INTERVAL_MIN = 15; // mins
+  const INTERVAL_MAX = 60; // mins
+
   if (safeConfirmations < 1) {
     throw Error("Invalid safeConfirmations value");
   }
@@ -118,19 +119,19 @@ export const _handler = async (
   // note that fetchColorEvents may take long time when too many Color events to fetch.
 
   console.time("fetchColorEvents");
-  const events = await fetchColorEvents(registry, lastSnapshotBlock + 1);
+  const colors = await fetchColorEvents(registry, lastSnapshotBlock + 1);
   console.timeEnd("fetchColorEvents");
 
   // determine whether to change cron rate.
 
-  if (hasEventsRecently(events, latestBlock - LATEST_BLOCKS)) {
+  if (hasEventsRecently(colors, latestBlock - LATEST_BLOCKS)) {
     await cron.changeRate(INTERVAL_MIN);
   } else {
     await cron.changeRate(INTERVAL_MAX);
   }
 
-  console.log(`new Color events amount: ${events.length}`);
-  if (events.length < COLOR_EVENTS_THRESHOLD) {
+  console.log(`new Color events amount: ${colors.length}`);
+  if (colors.length < snapshotThreshold) {
     console.log(`new Color events too few, quit.`);
     return;
   }
@@ -139,7 +140,7 @@ export const _handler = async (
     lastSnapshotBlock,
     newSnapshotBlock,
     lastSnapShotCid,
-    events.filter((e) => e.blockNumber <= newSnapshotBlock),
+    colors.filter((e) => e.blockNumber <= newSnapshotBlock),
     snapper,
     ipfs,
     storage

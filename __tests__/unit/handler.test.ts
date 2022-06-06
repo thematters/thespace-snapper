@@ -71,17 +71,25 @@ describe("_handler", function () {
   });
   it("throw Error if safeConfirmations is 0", async () => {
     await expect(
-      _handler(registry, snapper, 0, cron, ipfs, storage)
+      _handler(0, 10, registry, snapper, cron, ipfs, storage)
     ).rejects.toThrowError("Invalid safeConfirmations value");
   });
   it("log 'new blocks too few.'", async () => {
     const consoleSpy = jest.spyOn(console, "log");
-    await _handler(registry, snapper, 10, cron, ipfs, storage);
+    await _handler(10, 10, registry, snapper, cron, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("new blocks too few.");
   });
   it("sync files from ipfs to s3 if s3 is empty", async () => {
     const consoleSpy = jest.spyOn(console, "time");
-    await _handler(registry, snapper, 1, cron, ipfs, new EmptyS3StorageStub());
+    await _handler(
+      1,
+      10,
+      registry,
+      snapper,
+      cron,
+      ipfs,
+      new EmptyS3StorageStub()
+    );
     expect(consoleSpy).toHaveBeenCalledWith("syncSnapperFiles");
   });
 });
