@@ -74,7 +74,7 @@ describe("_handler", function () {
     await _handler(10, 10, registry, snapper, cron, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("new blocks too few.");
   });
-  it("sync files from ipfs to s3 if s3 is empty", async () => {
+  it("sync files from ipfs to s3 if lastest snapshot file not in s3", async () => {
     const consoleSpy = jest.spyOn(console, "time");
     await _handler(
       1,
@@ -86,6 +86,24 @@ describe("_handler", function () {
       new EmptyS3StorageStub()
     );
     expect(consoleSpy).toHaveBeenCalledWith("syncSnapperFiles");
+  });
+  it("change cron to 60 mins if fetching no Color events", async () => {
+    const consoleSpy = jest.spyOn(console, "log");
+    await _handler(1, 10, registry, snapper, cron, ipfs, storage);
+    expect(consoleSpy).toHaveBeenCalledWith("cron set to 60 mins");
+    expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 0");
+  });
+  it("change cron to 15 mins if having events recently", async () => {
+    const tx = await registry.setColor(
+      1,
+      1,
+      "0x67B94473D81D0cd00849D563C94d0432Ac988B49"
+    );
+    await tx.wait();
+    const consoleSpy = jest.spyOn(console, "log");
+    await _handler(1, 10, registry, snapper, cron, ipfs, storage);
+    expect(consoleSpy).toHaveBeenCalledWith("cron set to 15 mins");
+    expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
   });
 });
 
