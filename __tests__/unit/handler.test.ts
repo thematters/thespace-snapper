@@ -69,7 +69,7 @@ describe("_handler", function () {
       _handler(0, 10, registry, snapper, cron, ipfs, storage)
     ).rejects.toThrowError("Invalid safeConfirmations value");
   });
-  it("log 'new blocks too few.'", async () => {
+  it("new blocks too few.", async () => {
     const consoleSpy = jest.spyOn(console, "log");
     await _handler(10, 10, registry, snapper, cron, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("new blocks too few.");
@@ -104,6 +104,32 @@ describe("_handler", function () {
     await _handler(1, 10, registry, snapper, cron, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("cron set to 15 mins");
     expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
+  });
+  it("do not take snapshot if color events amount smaller than threshold", async () => {
+    const tx = await registry.setColor(
+      1,
+      1,
+      "0x67B94473D81D0cd00849D563C94d0432Ac988B49"
+    );
+    await tx.wait();
+    const consoleSpy = jest.spyOn(console, "log");
+    await _handler(1, 2, registry, snapper, cron, ipfs, storage);
+    expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
+    expect(consoleSpy).toHaveBeenCalledWith("new Color events too few, quit.");
+  });
+  it("take snapshot if color events amount greater than or equal to threshold", async () => {
+    const tx = await registry.setColor(
+      1,
+      1,
+      "0x67B94473D81D0cd00849D563C94d0432Ac988B49"
+    );
+    await tx.wait();
+    const consoleSpy = jest.spyOn(console, "log");
+    await _handler(1, 1, registry, snapper, cron, ipfs, storage);
+    expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "emit Snapshot(blocknum: 6, cid: QmX8acbms98niW1XT39cYgsDJJvs5F2JJmv8fkAuccWNYN )"
+    );
   });
 });
 

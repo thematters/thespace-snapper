@@ -74,12 +74,10 @@ export const takeSnapshot = async (
   await tx.wait();
   console.timeEnd("take snapshot tx");
 
-  console.info(
-    `snapper::emit: Snapshot(blocknum: ${newSnapshotBlock}, cid: ${snapshotCid} ).`
+  console.log(
+    `emit Snapshot(blocknum: ${newSnapshotBlock}, cid: ${snapshotCid} )`
   );
-  console.info(
-    `snapper::emit: Delta(blocknum: ${newSnapshotBlock}, cid: ${deltaCid} ).`
-  );
+  console.log(`emit Delta(blocknum: ${newSnapshotBlock}, cid: ${deltaCid} )`);
 };
 
 export const fetchColorEvents = async (
