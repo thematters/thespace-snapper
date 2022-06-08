@@ -87,10 +87,10 @@ describe("_handler", function () {
     );
     expect(consoleSpy).toHaveBeenCalledWith("syncSnapperFiles");
   });
-  it("change cron to 60 mins if fetching no Color events", async () => {
+  it("change cron to 30 mins if fetching no Color events", async () => {
     const consoleSpy = jest.spyOn(console, "log");
     await _handler(1, 10, registry, snapper, cron, ipfs, storage);
-    expect(consoleSpy).toHaveBeenCalledWith("cron set to 60 mins");
+    expect(consoleSpy).toHaveBeenCalledWith("cron set to 30 mins");
     expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 0");
   });
   it("change cron to 15 mins if having events recently", async () => {

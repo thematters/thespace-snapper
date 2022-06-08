@@ -88,7 +88,7 @@ export const _handler = async (
   storage: Storage
 ) => {
   const INTERVAL_MIN = 15; // mins
-  const INTERVAL_MAX = 60; // mins
+  const INTERVAL_MAX = 30; // mins
 
   if (safeConfirmations < 1) {
     throw Error("Invalid safeConfirmations value");
