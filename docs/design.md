@@ -53,7 +53,7 @@ _note: color delta and map snapshot are generated using the same interval._
 ## snapper-contract
 
 - receive meta info from snapper and emit events
-- snapper-contract repo: https://github.com/thematters/contracts/tree/develop/src/Snapper
+- [repo](https://github.com/thematters/contracts/tree/develop/src/Snapper)
 
 ## data structures
 
@@ -71,52 +71,55 @@ _note: color delta and map snapshot are generated using the same interval._
 - support any color
 - small enough (with random image at around 700k for theoretical upper limit, normally should be smaller than 350k)
 
-##### examples
-
-```
-316k    fractal16.png
-240k    moutain16.png
-104k    panda16.png
-688k    random16.png
-```
-
 ### delta
 
 ```
 {
-    delta: [
+    "delta": [
         {
-            bk: int,                // block number for this delta
-            time: ISO8601 string,       // real world time for this block
-            cs: [
+            "bk": {
+		    "description": "block number for this delta",
+		    "type": "number"
+	    },
+            "time": {
+		    "description": "real world time for this block",
+		    "type": "string",
+		    "format": "ISO8601"
+            "cs": [
                 {
-                    i: int              // pixel id
-                    c: int              // pixel color
+                    "i": {
+			    "description": "pixel id",
+			    "type": "number"
+		    }
+                    "c": {
+			    "description": "pixel color",
+			    "type": "number"
+		    }
                 },
                 ...
             ]
         },
         ...
     ],
-    prev: string?                   // ipfs cid of previous delta, null for first delta
-    snapshot: string                   // ipfs cid of previous snapshot
+    "prev": {
+	    "description": "IPFS CID of previous delta, null for first delta",
+	    "type": ["string", "null"],
+    },
+    "snapshot": {
+	    "description": "IPFS CID of previous snapshot",
+	    "type": "string"
+    }
 }
 ```
 
 ### snapshot info (event)
 
 ```
-{
-    bk: int,        // block number for this snapshot
-    cid: string         // ipfs cid for this snapshot
-}
+event Snapshot(uint256 indexed regionId, uint256 indexed block, string cid)
 ```
 
 ### delta info (event)
 
 ```
-{
-    bk: int,        // block number for this delta
-    cid: string         // ipfs cid for this delta
-}
+event Delta(uint256 indexed regionId, uint256 indexed block, string cid)
 ```
