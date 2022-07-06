@@ -5,7 +5,7 @@ import type { Storage, IPFS } from "./storage";
 import axios from "axios";
 import { ethers } from "ethers";
 import { AbortController } from "node-abort-controller";
-import { nth } from "lodash";
+import { nth, chunk } from "lodash";
 import { S3Storage, IpfsStorage } from "./storage";
 import {
   takeSnapshot,
@@ -38,7 +38,8 @@ export const handler = async (event: any) => {
     throw Error("All environment variables must be provided");
   }
 
-  const COLOR_EVENTS_SNAPSHOT_THRESHOLD = 3000;
+  const MIN_COLORS_AMOUNT = 3000;
+  const MAX_COLORS_AMOUNT = 3500;
 
   const cronRuleName = ruleNameFromEvent(event);
   if (cronRuleName === null) {
@@ -66,7 +67,8 @@ export const handler = async (event: any) => {
 
   await _handler(
     parseInt(process.env.SAFE_CONFIRMATIONS),
-    COLOR_EVENTS_SNAPSHOT_THRESHOLD,
+    MIN_COLORS_AMOUNT,
+    MAX_COLORS_AMOUNT,
     registry,
     snapper,
     new LambdaCron(cronRuleName),
@@ -80,7 +82,8 @@ export const handler = async (event: any) => {
 
 export const _handler = async (
   safeConfirmations: number,
-  snapshotThreshold: number,
+  minColorsAmount: number,
+  maxColorsAmount: number,
   registry: Contract,
   snapper: Contract,
   cron: Cron,
@@ -95,21 +98,21 @@ export const _handler = async (
   }
 
   const regionId = 0;
-  const latestBlock: number = await snapper.provider!.getBlockNumber();
-  const [_lastSnapshotBlock, lastSnapShotCid] = await snapper[
+  const latestBlockNum: number = await snapper.provider!.getBlockNumber();
+  const [_lastSnapshotBlock, lastSnapshotCid] = await snapper[
     "latestSnapshotInfo(uint256)"
   ](regionId);
-  const lastSnapshotBlock = _lastSnapshotBlock.toNumber();
+  const lastSnapshotBlockNum = _lastSnapshotBlock.toNumber();
 
-  const newSnapshotBlock: number = latestBlock + 1 - safeConfirmations; // note that latestBlock's block confirmations is 1
-  if (newSnapshotBlock <= lastSnapshotBlock) {
+  const newSnapshotBlockNum: number = latestBlockNum + 1 - safeConfirmations; // note that latestBlock's block confirmations is 1
+  if (newSnapshotBlockNum <= lastSnapshotBlockNum) {
     console.log(`new blocks too few.`);
     return;
   }
 
   // upload snapshot and delta from ipfs to s3 if there is no file in bucket.
 
-  if ((await storage.check(lastSnapShotCid)) === false) {
+  if ((await storage.check(lastSnapshotCid)) === false) {
     console.time("syncSnapperFiles");
     await syncSnapperFiles(snapper, ipfs, storage);
     console.timeEnd("syncSnapperFiles");
@@ -118,8 +121,18 @@ export const _handler = async (
   // note that fetchColorEvents may take long time when too many Color events to fetch.
 
   console.time("fetchColorEvents");
-  const colors = await fetchColorEvents(registry, lastSnapshotBlock + 1);
+  let _res = [];
+  try {
+    _res = await fetchColorEvents(registry, lastSnapshotBlockNum + 1);
+  } catch (err) {
+    _res = await fetchColorEvents(
+      registry,
+      lastSnapshotBlockNum + 1,
+      newSnapshotBlockNum
+    );
+  }
   console.timeEnd("fetchColorEvents");
+  const colors = _res.filter((e) => e.blockNumber <= newSnapshotBlockNum);
 
   // determine whether to change cron rate.
 
@@ -132,20 +145,42 @@ export const _handler = async (
   }
 
   console.log(`new Color events amount: ${colors.length}`);
-  if (colors.length < snapshotThreshold) {
+  if (colors.length < minColorsAmount) {
     console.log(`new Color events too few, quit.`);
     return;
+  } else if (colors.length <= maxColorsAmount) {
+    await takeSnapshot(
+      lastSnapshotBlockNum,
+      newSnapshotBlockNum,
+      lastSnapshotCid,
+      colors,
+      snapper,
+      ipfs,
+      storage
+    );
+  } else {
+    const colorss = chunk(colors, maxColorsAmount);
+    const _lastSnapshotBlockNum = lastSnapshotBlockNum;
+    let _lastSnapshotCid = lastSnapshotCid;
+    let _newSnapshotBlockNum = 0;
+    for (const _colors of colorss) {
+      if (_colors.length < minColorsAmount) {
+        continue;
+      }
+      _newSnapshotBlockNum = nth(_colors, -1)!.blockNumber;
+      await takeSnapshot(
+        _lastSnapshotBlockNum,
+        _newSnapshotBlockNum,
+        _lastSnapshotCid,
+        _colors,
+        snapper,
+        ipfs,
+        storage
+      );
+      const [_, cid] = await snapper["latestSnapshotInfo(uint256)"](regionId);
+      _lastSnapshotCid = cid;
+    }
   }
-
-  await takeSnapshot(
-    lastSnapshotBlock,
-    newSnapshotBlock,
-    lastSnapShotCid,
-    colors.filter((e) => e.blockNumber <= newSnapshotBlock),
-    snapper,
-    ipfs,
-    storage
-  );
 };
 
 // helpers
