@@ -182,7 +182,7 @@ const syncSnapperFiles = async (
 };
 
 export const getFeeDataFromPolygon = async () => {
-  const defaultGasFee = ethers.BigNumber.from(30000000000);
+  const defaultGasFee = ethers.BigNumber.from(40000000000);
   let maxFeePerGas, maxPriorityFeePerGas, gasPrice;
   try {
     const { data } = await axios({
