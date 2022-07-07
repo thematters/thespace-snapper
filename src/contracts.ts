@@ -2,7 +2,7 @@ import type { Event, Contract } from "ethers";
 import type { Storage, IPFS } from "./storage";
 
 import { PNG, PackerOptions } from "pngjs";
-import { groupBy, toPairs, flatten, chunk } from "lodash";
+import { groupBy, toPairs, flatten, flattenDeep, chunk } from "lodash";
 
 type Change = {
   i: number;
@@ -101,8 +101,13 @@ export const fetchColorEvents = async (
       theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, toBlock)
     );
     console.log(`getLogs requests amount: ${requests.length}`);
-    const res = await Promise.all(requests);
-    return flatten(res);
+
+    const res: Event[][][] = [];
+    const chunks: Promise<Event[]>[][] = chunk(requests, 4);
+    for (const c of chunks) {
+      res.push(await Promise.all(c));
+    }
+    return flattenDeep(res);
   } else {
     return await theSpace.queryFilter(theSpace.filters.Color(), fromBlock);
   }
