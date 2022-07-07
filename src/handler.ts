@@ -160,7 +160,7 @@ export const _handler = async (
     );
   } else {
     const colorss = chunk(colors, maxColorsAmount);
-    const _lastSnapshotBlockNum = lastSnapshotBlockNum;
+    let _lastSnapshotBlockNum = lastSnapshotBlockNum;
     let _lastSnapshotCid = lastSnapshotCid;
     let _newSnapshotBlockNum = 0;
     for (const _colors of colorss) {
@@ -177,7 +177,10 @@ export const _handler = async (
         ipfs,
         storage
       );
-      const [_, cid] = await snapper["latestSnapshotInfo(uint256)"](regionId);
+      const [_blockNum, cid] = await snapper["latestSnapshotInfo(uint256)"](
+        regionId
+      );
+      _lastSnapshotBlockNum = _blockNum.toNumber();
       _lastSnapshotCid = cid;
     }
   }

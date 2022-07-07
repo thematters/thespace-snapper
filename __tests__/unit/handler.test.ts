@@ -106,7 +106,7 @@ describe("_handler", function () {
     expect(consoleSpy).toHaveBeenCalledWith("cron set to 15 mins");
     expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
   });
-  it("do not take snapshot if color events amount smaller than threshold", async () => {
+  it("do not take snapshot if color events amount smaller than MIN_COLORS_AMOUNT", async () => {
     const tx = await registry.setColor(
       1,
       1,
@@ -118,7 +118,7 @@ describe("_handler", function () {
     expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
     expect(consoleSpy).toHaveBeenCalledWith("new Color events too few, quit.");
   });
-  it("take snapshot if color events amount greater than or equal to threshold", async () => {
+  it("take snapshot if color events amount >= MIN_COLORS_AMOUNT and <= MAX_COLORS_AMOUNT", async () => {
     const tx = await registry.setColor(
       1,
       1,
@@ -130,6 +130,35 @@ describe("_handler", function () {
     expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
     expect(consoleSpy).toHaveBeenCalledWith(
       "emit Snapshot(blocknum: 6, cid: QmX8acbms98niW1XT39cYgsDJJvs5F2JJmv8fkAuccWNYN )"
+    );
+  });
+  it("take snapshots if color events amount >= MAX_COLORS_AMOUNT", async () => {
+    const tx1 = await registry.setColor(
+      1,
+      1,
+      "0x67B94473D81D0cd00849D563C94d0432Ac988B49"
+    );
+    await tx1.wait();
+    const tx2 = await registry.setColor(
+      2,
+      2,
+      "0x67B94473D81D0cd00849D563C94d0432Ac988B49"
+    );
+    await tx2.wait();
+    const tx3 = await registry.setColor(
+      3,
+      3,
+      "0x67B94473D81D0cd00849D563C94d0432Ac988B49"
+    );
+    await tx3.wait();
+    const consoleSpy = jest.spyOn(console, "log");
+    await _handler(1, 1, 2, registry, snapper, cron, ipfs, storage);
+    expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 3");
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "emit Snapshot(blocknum: 7, cid: QmX8acbms98niW1XT39cYgsDJJvs5F2JJmv8fkAuccWNYN )"
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "emit Snapshot(blocknum: 8, cid: QmX8acbms98niW1XT39cYgsDJJvs5F2JJmv8fkAuccWNYN )"
     );
   });
 });
