@@ -86,16 +86,16 @@ export const fetchColorEvents = async (
   toBlock?: number
 ): Promise<Event[]> => {
   if (toBlock != null) {
-    // work around getLogs api 2k block range limit
+    // work around getLogs api 2k block range limit and 1k events limit
     const requests: Promise<Event[]>[] = [];
     let _fromBlock: number = fromBlock;
-    let _toBlock: number = fromBlock + 1999;
+    let _toBlock: number = fromBlock + 499;
     while (_toBlock < toBlock) {
       requests.push(
         theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, _toBlock)
       );
       _fromBlock = _toBlock + 1;
-      _toBlock = _fromBlock + 1999;
+      _toBlock = _fromBlock + 499;
     }
     requests.push(
       theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, toBlock)
