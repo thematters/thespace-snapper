@@ -73,7 +73,7 @@ _note: color delta and map snapshot are generated using the same interval._
 
 ### delta
 
-```
+```json
 // old data
 {
     "delta": [
