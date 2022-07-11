@@ -11,8 +11,9 @@ import {
   fetchColorEvents,
   fetchSnapshotEvents,
   fetchDeltaEvents,
+  fetchLastDeltaCid,
+  mapTimestamp,
 } from "./contracts";
-import { LambdaCron, ruleNameFromEvent } from "./cron";
 import { abi as registryABI } from "../abi/TheSpaceRegistry.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
 
@@ -121,7 +122,13 @@ export const _handler = async (
     );
   }
   console.timeEnd("fetchColorEvents");
-  const colors = _res.filter((e) => e.blockNumber <= newSnapshotBlockNum);
+
+  console.timeEnd("fetchTime");
+  const colors = await mapTimestamp(
+    _res.filter((e) => e.blockNumber <= newSnapshotBlockNum),
+    snapper.provider!
+  );
+  console.timeEnd("fetchTime");
 
   console.log(`new Color events amount: ${colors.length}`);
   if (colors.length < minColorsAmount) {
@@ -132,6 +139,7 @@ export const _handler = async (
       lastSnapshotBlockNum,
       newSnapshotBlockNum,
       lastSnapshotCid,
+      await fetchLastDeltaCid(snapper, lastSnapshotBlockNum),
       colors,
       snapper,
       ipfs,
@@ -146,11 +154,12 @@ export const _handler = async (
       if (_colors.length < minColorsAmount) {
         continue;
       }
-      _newSnapshotBlockNum = nth(_colors, -1)!.blockNumber;
+      _newSnapshotBlockNum = nth(_colors, -1)!.bk;
       await takeSnapshot(
         _lastSnapshotBlockNum,
         _newSnapshotBlockNum,
         _lastSnapshotCid,
+        await fetchLastDeltaCid(snapper, _lastSnapshotBlockNum),
         _colors,
         snapper,
         ipfs,

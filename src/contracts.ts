@@ -1,18 +1,26 @@
-import type { Event, Contract } from "ethers";
+import type { Event, Contract, providers } from "ethers";
 import type { Storage, IPFS } from "./storage";
 
+import pLimit from "p-limit";
 import { PNG, PackerOptions } from "pngjs";
-import { groupBy, toPairs, flatten, flattenDeep, chunk } from "lodash";
+import { chunk, nth, flatten } from "lodash";
 
-type ColorEvent = {
-  i: number;
-  c: number;
+// TYPES
+
+export type TimestampedColorEvent = {
+  bk: number;
+  time: string;
+  pixelId: number;
+  colorId: number;
 };
 
 type BlockDelta = {
   bk: number;
   time: string;
-  cs: ColorEvent[];
+  cs: {
+    i: number;
+    c: number;
+  }[];
 };
 
 export type Delta = {
@@ -24,29 +32,23 @@ export type Delta = {
   };
 };
 
+// API
+
 export const takeSnapshot = async (
   lastSnapshotBlock: number,
   newSnapshotBlock: number,
-  lastSnapShotCid: string,
-  events: Event[],
+  lastSnapshotCid: string,
+  lastDeltaCid: string | null,
+  events: TimestampedColorEvent[],
   snapper: Contract,
   ipfs: IPFS,
   storage: Storage
 ) => {
-  // gen delta data
-  console.time("genDelta");
-  const delta: Delta = await genDelta(
-    events,
-    await getLastDeltaCid(snapper, lastSnapshotBlock),
-    lastSnapShotCid
-  );
-  console.timeEnd("genDelta");
-
   // gen snapshot png file
-  const lastSnapshot: Buffer = await storage.read(lastSnapShotCid);
+  const lastSnapshot: Buffer = await storage.read(lastSnapshotCid);
 
   const png = PNG.sync.read(lastSnapshot);
-  applyChange(png, events);
+  paint(png, events);
 
   const options: PackerOptions = {
     colorType: 2,
@@ -56,12 +58,12 @@ export const takeSnapshot = async (
   };
   const snapshot: Buffer = PNG.sync.write(png, options);
 
-  // upload to ipfs
-  const deltaString = JSON.stringify(delta);
-  const deltaCid = await ipfs.writeAndReturnCid(deltaString);
+  // upload to ipfs and get cids
+  const delta = JSON.stringify(genDelta(events, lastDeltaCid, lastSnapshotCid));
+  const deltaCid = await ipfs.writeAndReturnCid(delta);
   const snapshotCid = await ipfs.writeAndReturnCid(snapshot);
   // upload to s3
-  await storage.write(deltaCid, deltaString, "application/json");
+  await storage.write(deltaCid, delta, "application/json");
   await storage.write(snapshotCid, snapshot, "image/png");
 
   // take snapshot
@@ -90,27 +92,27 @@ export const fetchColorEvents = async (
 ): Promise<Event[]> => {
   if (toBlock != null) {
     // work around getLogs api 2k block range limit and 1k events limit
+    const limit = pLimit(4);
     const requests: Promise<Event[]>[] = [];
     let _fromBlock: number = fromBlock;
     let _toBlock: number = fromBlock + 499;
     while (_toBlock < toBlock) {
       requests.push(
-        theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, _toBlock)
+        limit(() =>
+          theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, _toBlock)
+        )
       );
       _fromBlock = _toBlock + 1;
       _toBlock = _fromBlock + 499;
     }
     requests.push(
-      theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, toBlock)
+      limit(() =>
+        theSpace.queryFilter(theSpace.filters.Color(), _fromBlock, toBlock)
+      )
     );
     console.log(`getLogs requests amount: ${requests.length}`);
 
-    const res: Event[][][] = [];
-    const chunks: Promise<Event[]>[][] = chunk(requests, 4);
-    for (const c of chunks) {
-      res.push(await Promise.all(c));
-    }
-    return flattenDeep(res);
+    return flatten(await Promise.all(requests));
   } else {
     return await theSpace.queryFilter(theSpace.filters.Color(), fromBlock);
   }
@@ -126,9 +128,7 @@ export const fetchDeltaEvents = async (snapper: Contract): Promise<Event[]> => {
   return await snapper.queryFilter(snapper.filters.Delta());
 };
 
-// helpers
-
-const getLastDeltaCid = async (
+export const fetchLastDeltaCid = async (
   snapper: Contract,
   lastSnapshotBlock: number
 ): Promise<string | null> => {
@@ -143,37 +143,51 @@ const getLastDeltaCid = async (
   }
 };
 
-const genDelta = async (
+export const mapTimestamp = async (
   events: Event[],
+  provider: providers.Provider
+): Promise<TimestampedColorEvent[]> => {
+  const fetchTime = async (bk: number): Promise<[number, string]> => [
+    bk,
+    new Date((await provider.getBlock(bk)).timestamp * 1000).toISOString(),
+  ];
+  const _bkAndTimes: Promise<[number, string]>[] = [];
+  const limit = pLimit(100);
+  const bks = new Set(events.map((e) => e.blockNumber));
+  bks.forEach((bk) => _bkAndTimes.push(limit(() => fetchTime(bk))));
+  const bkAndTimes = await Promise.all(_bkAndTimes);
+  const timeRecord = Object.fromEntries(bkAndTimes);
+
+  return events.map((e) => {
+    return {
+      bk: e.blockNumber,
+      time: timeRecord[e.blockNumber],
+      pixelId: parseInt(e.args!.tokenId),
+      colorId: parseInt(e.args!.color),
+    };
+  });
+};
+
+const genDelta = (
+  events: TimestampedColorEvent[],
   lastDeltaCid: string | null,
   lastSnapshotCid: string
-): Promise<Delta> => {
-  const eventsByBlock = toPairs(groupBy(events, (e: Event) => e.blockNumber));
-  console.log(`eth_getBlockByHash requests amount: ${eventsByBlock.length}`);
-
-  const marshal = async (item: [string, Event[]]): Promise<BlockDelta> => {
-    const [bkNum, es] = item;
-    const timestamp: number = (await es[0].getBlock()).timestamp;
-    const ISO: string = new Date(timestamp * 1000).toISOString();
-    return {
-      bk: parseInt(bkNum),
-      time: ISO,
-      cs: es.map((e: Event) => ({
-        i: parseInt(e.args!.tokenId),
-        c: parseInt(e.args!.color),
-      })),
-    };
-  };
-
-  const res: BlockDelta[][] = [];
-  const chunks: [string, Event[]][][] = chunk(eventsByBlock, 500);
-
-  for (const chunk of chunks) {
-    res.push(await Promise.all(chunk.map(marshal)));
+): Delta => {
+  const delta: BlockDelta[] = [];
+  for (const e of events) {
+    if (delta.length === 0 || nth(delta, -1)!.bk !== e.bk) {
+      delta.push({
+        bk: e.bk,
+        time: e.time,
+        cs: [{ i: e.pixelId, c: e.colorId }],
+      });
+    } else {
+      nth(delta, -1)!.cs.push({ i: e.pixelId, c: e.colorId });
+    }
   }
 
   return {
-    delta: flatten(res),
+    delta: delta,
     prev: lastDeltaCid,
     snapshot: {
       cid: lastSnapshotCid,
@@ -182,12 +196,12 @@ const genDelta = async (
   };
 };
 
-export const applyChange = (png: PNG, events: Event[]): void => {
+export const paint = (png: PNG, events: TimestampedColorEvent[]): void => {
   for (const e of events) {
-    const tokenId = parseInt(e.args!.tokenId);
-    const color = parseInt(e.args!.color);
+    const tokenId = e.pixelId;
+    const colorId = e.colorId;
     const idx = (tokenId - 1) * 4;
-    const rgb = getRGB(color);
+    const rgb = getRGB(colorId);
     png.data[idx] = (rgb >> 16) & 0xff;
     png.data[idx + 1] = (rgb >> 8) & 0xff;
     png.data[idx + 2] = rgb & 0xff;
@@ -195,15 +209,15 @@ export const applyChange = (png: PNG, events: Event[]): void => {
   }
 };
 
-export const getRGB = (color: number): number => {
+export const getRGB = (colorId: number): number => {
   const RGBs = [
     0x000000, 0xffffff, 0xd4d7d9, 0x898d90, 0x784102, 0xd26500, 0xff8a00,
     0xffde2f, 0x159800, 0x8de763, 0x58eaf4, 0x059df2, 0x034cba, 0x9503c9,
     0xd90041, 0xff9fab,
   ];
-  if (color > 16 || color == 0) {
+  if (colorId > 16 || colorId == 0) {
     return RGBs[0];
   } else {
-    return RGBs[color - 1];
+    return RGBs[colorId - 1];
   }
 };
