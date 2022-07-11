@@ -1,5 +1,4 @@
 import type { Contract, Event } from "ethers";
-import type { Cron } from "./cron";
 import type { Storage, IPFS } from "./storage";
 
 import axios from "axios";
@@ -41,11 +40,6 @@ export const handler = async (event: any) => {
   const MIN_COLORS_AMOUNT = 3000;
   const MAX_COLORS_AMOUNT = 3500;
 
-  const cronRuleName = ruleNameFromEvent(event);
-  if (cronRuleName === null) {
-    throw Error("Not a schedule event");
-  }
-
   const provider = new ethers.providers.JsonRpcProvider(
     process.env.PROVIDER_RPC_HTTP_URL
   );
@@ -71,7 +65,6 @@ export const handler = async (event: any) => {
     MAX_COLORS_AMOUNT,
     registry,
     snapper,
-    new LambdaCron(cronRuleName),
     new IpfsStorage(
       process.env.INFURA_IPFS_PROJECT_ID,
       process.env.INFURA_IPFS_PROJECT_SECRET
@@ -86,13 +79,9 @@ export const _handler = async (
   maxColorsAmount: number,
   registry: Contract,
   snapper: Contract,
-  cron: Cron,
   ipfs: IPFS,
   storage: Storage
 ) => {
-  const INTERVAL_MIN = 15; // mins
-  const INTERVAL_MAX = 30; // mins
-
   if (safeConfirmations < 1) {
     throw Error("Invalid safeConfirmations value");
   }
@@ -133,16 +122,6 @@ export const _handler = async (
   }
   console.timeEnd("fetchColorEvents");
   const colors = _res.filter((e) => e.blockNumber <= newSnapshotBlockNum);
-
-  // determine whether to change cron rate.
-
-  if (await hasEventsRecently(colors)) {
-    await cron.changeRate(INTERVAL_MIN);
-    console.log(`cron set to ${INTERVAL_MIN} mins`);
-  } else {
-    await cron.changeRate(INTERVAL_MAX);
-    console.log(`cron set to ${INTERVAL_MAX} mins`);
-  }
 
   console.log(`new Color events amount: ${colors.length}`);
   if (colors.length < minColorsAmount) {
@@ -188,21 +167,21 @@ export const _handler = async (
 
 // helpers
 
-const hasEventsRecently = async (events: Event[]): Promise<boolean> => {
-  if (events.length == 0) {
-    return false;
-  }
-  const lastestBlock = await nth(events, -1)?.getBlock();
-  if (lastestBlock == undefined) {
-    return false;
-  }
-  const tenMins = 10 * 60 * 1000;
-  if (Date.now() - lastestBlock.timestamp * 1000 <= tenMins) {
-    return true;
-  } else {
-    return false;
-  }
-};
+// const hasEventsRecently = async (events: Event[]): Promise<boolean> => {
+//   if (events.length == 0) {
+//     return false;
+//   }
+//   const lastestBlock = await nth(events, -1)?.getBlock();
+//   if (lastestBlock == undefined) {
+//     return false;
+//   }
+//   const tenMins = 10 * 60 * 1000;
+//   if (Date.now() - lastestBlock.timestamp * 1000 <= tenMins) {
+//     return true;
+//   } else {
+//     return false;
+//   }
+// };
 
 const syncSnapperFiles = async (
   snapper: Contract,

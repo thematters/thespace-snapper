@@ -10,7 +10,6 @@ import {
   genFakeProvider,
   genFakeTheSpaceRegistry,
   genFakeSnapper,
-  CronStub,
   S3StorageStub,
   IpfsStub,
   EmptyS3StorageStub,
@@ -41,9 +40,6 @@ describe("handler", function () {
       "All environment variables must be provided"
     );
   });
-  it("throw error if illegal events provided", async () => {
-    await expect(handler({})).rejects.toThrowError("Not a schedule event");
-  });
 });
 
 describe("_handler", function () {
@@ -51,7 +47,6 @@ describe("_handler", function () {
   let registry: Contract;
   let initSnapshotBlock: number;
   let snapper: Contract;
-  let cron: Cron;
   let storage: Storage;
   let ipfs: IPFS;
   beforeEach(async () => {
@@ -60,18 +55,17 @@ describe("_handler", function () {
     registry = await genFakeTheSpaceRegistry(signer);
     initSnapshotBlock = registry.deployTransaction.blockNumber!;
     snapper = await genFakeSnapper(signer, initSnapshotBlock, CID0);
-    cron = new CronStub();
     storage = new S3StorageStub();
     ipfs = new IpfsStub();
   });
   it("throw Error if safeConfirmations is 0", async () => {
     await expect(
-      _handler(0, 10, 10, registry, snapper, cron, ipfs, storage)
+      _handler(0, 10, 10, registry, snapper, ipfs, storage)
     ).rejects.toThrowError("Invalid safeConfirmations value");
   });
   it("new blocks too few.", async () => {
     const consoleSpy = jest.spyOn(console, "log");
-    await _handler(10, 10, 10, registry, snapper, cron, ipfs, storage);
+    await _handler(10, 10, 10, registry, snapper, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("new blocks too few.");
   });
   it("sync files from ipfs to s3 if lastest snapshot file not in s3", async () => {
@@ -82,29 +76,10 @@ describe("_handler", function () {
       10,
       registry,
       snapper,
-      cron,
       ipfs,
       new EmptyS3StorageStub()
     );
     expect(consoleSpy).toHaveBeenCalledWith("syncSnapperFiles");
-  });
-  it("change cron to 30 mins if fetching no Color events", async () => {
-    const consoleSpy = jest.spyOn(console, "log");
-    await _handler(1, 10, 10, registry, snapper, cron, ipfs, storage);
-    expect(consoleSpy).toHaveBeenCalledWith("cron set to 30 mins");
-    expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 0");
-  });
-  it("change cron to 15 mins if having events recently", async () => {
-    const tx = await registry.setColor(
-      1,
-      1,
-      "0x67B94473D81D0cd00849D563C94d0432Ac988B49"
-    );
-    await tx.wait();
-    const consoleSpy = jest.spyOn(console, "log");
-    await _handler(1, 10, 10, registry, snapper, cron, ipfs, storage);
-    expect(consoleSpy).toHaveBeenCalledWith("cron set to 15 mins");
-    expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
   });
   it("do not take snapshot if color events amount smaller than MIN_COLORS_AMOUNT", async () => {
     const tx = await registry.setColor(
@@ -114,7 +89,7 @@ describe("_handler", function () {
     );
     await tx.wait();
     const consoleSpy = jest.spyOn(console, "log");
-    await _handler(1, 2, 10, registry, snapper, cron, ipfs, storage);
+    await _handler(1, 2, 10, registry, snapper, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
     expect(consoleSpy).toHaveBeenCalledWith("new Color events too few, quit.");
   });
@@ -126,7 +101,7 @@ describe("_handler", function () {
     );
     await tx.wait();
     const consoleSpy = jest.spyOn(console, "log");
-    await _handler(1, 1, 10, registry, snapper, cron, ipfs, storage);
+    await _handler(1, 1, 10, registry, snapper, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
     expect(consoleSpy).toHaveBeenCalledWith(
       "emit Snapshot(blocknum: 6, cid: QmX8acbms98niW1XT39cYgsDJJvs5F2JJmv8fkAuccWNYN )"
@@ -152,7 +127,7 @@ describe("_handler", function () {
     );
     await tx3.wait();
     const consoleSpy = jest.spyOn(console, "log");
-    await _handler(1, 1, 2, registry, snapper, cron, ipfs, storage);
+    await _handler(1, 1, 2, registry, snapper, ipfs, storage);
     expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 3");
     expect(consoleSpy).toHaveBeenCalledWith(
       "emit Snapshot(blocknum: 7, cid: QmX8acbms98niW1XT39cYgsDJJvs5F2JJmv8fkAuccWNYN )"
