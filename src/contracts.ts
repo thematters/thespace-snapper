@@ -4,21 +4,24 @@ import type { Storage, IPFS } from "./storage";
 import { PNG, PackerOptions } from "pngjs";
 import { groupBy, toPairs, flatten, flattenDeep, chunk } from "lodash";
 
-type Change = {
+type ColorEvent = {
   i: number;
   c: number;
 };
 
-export type BlockChange = {
+type BlockDelta = {
   bk: number;
   time: string;
-  cs: Change[];
+  cs: ColorEvent[];
 };
 
 export type Delta = {
-  delta: BlockChange[];
+  delta: BlockDelta[];
   prev: string | null;
-  snapshot: string;
+  snapshot: {
+    cid: string;
+    offset: number;
+  };
 };
 
 export const takeSnapshot = async (
@@ -148,7 +151,7 @@ const genDelta = async (
   const eventsByBlock = toPairs(groupBy(events, (e: Event) => e.blockNumber));
   console.log(`eth_getBlockByHash requests amount: ${eventsByBlock.length}`);
 
-  const marshal = async (item: [string, Event[]]): Promise<BlockChange> => {
+  const marshal = async (item: [string, Event[]]): Promise<BlockDelta> => {
     const [bkNum, es] = item;
     const timestamp: number = (await es[0].getBlock()).timestamp;
     const ISO: string = new Date(timestamp * 1000).toISOString();
@@ -162,7 +165,7 @@ const genDelta = async (
     };
   };
 
-  const res: BlockChange[][] = [];
+  const res: BlockDelta[][] = [];
   const chunks: [string, Event[]][][] = chunk(eventsByBlock, 500);
 
   for (const chunk of chunks) {
@@ -172,7 +175,10 @@ const genDelta = async (
   return {
     delta: flatten(res),
     prev: lastDeltaCid,
-    snapshot: lastSnapshotCid,
+    snapshot: {
+      cid: lastSnapshotCid,
+      offset: 0,
+    },
   };
 };
 

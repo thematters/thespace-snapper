@@ -29,7 +29,7 @@ dist/snapper-handler.js: node_modules
 dist/handler.zip: dist/snapper-handler.js
 	zip -j dist/handler.zip dist/snapper-handler.js
 
-build-lambda: clean node_modules
+lambda: clean node_modules
 	npx webpack --env goal=aws-lambda
 
 # delete-snapper:
