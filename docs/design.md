@@ -77,40 +77,33 @@ _note: color delta and map snapshot are generated using the same interval._
 {
     "delta": [
         {
-            "bk": {
-		    "description": "block number for this delta",
-		    "type": "number"
-	    },
-            "time": {
-		    "description": "real world time for this block",
-		    "type": "string",
-		    "format": "ISO8601"
+            "bk": 30565151
+            "time": "2022-07-04T07:57:30.000Z"
             "cs": [
                 {
-                    "i": {
-			    "description": "pixel id",
-			    "type": "number"
-		    }
-                    "c": {
-			    "description": "pixel color",
-			    "type": "number"
-		    }
+                    "i": 1,
+                    "c": 15,
                 },
                 ...
             ]
         },
         ...
     ],
-    "prev": {
-	    "description": "IPFS CID of previous delta, null for first delta",
-	    "type": ["string", "null"],
-    },
-    "snapshot": {
-	    "description": "IPFS CID of previous snapshot",
-	    "type": "string"
-    }
+    "prev": "Qma6s6k3iWDtWMBW4qvdZDZxAYFeioMPJDDHYmCpmJgWvp",
+    "snapshot": "QmdTzRdbGeEnWW2yS8kHiwF5YFUfbU4FXqDEhTAtVVtdUq"
 }
 ```
+
+Field Description:
+
+- `delta` object array
+  - `bk` number, block number for this delta
+  - `time` ISO 8601 string, real world time for this block
+  - `cs` object array, color events
+    - `i` pixel id in this color event
+    - `c` pixel color to change in this color event
+- `prev` string | null, IPFS CID of previous delta, null for first delta
+- `snapshot` string, IPFS CID of previous snapshot
 
 ### snapshot info (event)
 
