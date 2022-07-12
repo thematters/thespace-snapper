@@ -123,7 +123,7 @@ export const _handler = async (
   }
   console.timeEnd("fetchColorEvents");
 
-  console.timeEnd("fetchTime");
+  console.time("fetchTime");
   const colors = await mapTimestamp(
     _res.filter((e) => e.blockNumber <= newSnapshotBlockNum),
     snapper.provider!
