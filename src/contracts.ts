@@ -92,31 +92,29 @@ export const fetchColorEvents = async (
 ): Promise<Event[]> => {
   if (toBlock != null) {
     // work around getLogs api 2k block range limit and 1k events limit
-    const limit = pLimit(2);
+    const limit = pLimit(3);
     const requests: Promise<Event[]>[] = [];
     let _fromBlock: number = fromBlock;
     let _toBlock: number = fromBlock + 499;
     while (_toBlock < toBlock) {
       requests.push(
-        limit(() => {
-          return theSpace.queryFilter(
-            theSpace.filters.Color(),
-            _fromBlock,
-            _toBlock
-          );
-        })
+        limit(
+          (_from, _to) =>
+            theSpace.queryFilter(theSpace.filters.Color(), _from, _to),
+          _fromBlock,
+          _toBlock
+        )
       );
       _fromBlock = _toBlock + 1;
       _toBlock = _fromBlock + 499;
     }
     requests.push(
-      limit(() => {
-        return theSpace.queryFilter(
-          theSpace.filters.Color(),
-          _fromBlock,
-          toBlock
-        );
-      })
+      limit(
+        (_from, _to) =>
+          theSpace.queryFilter(theSpace.filters.Color(), _from, _to),
+        _fromBlock,
+        toBlock
+      )
     );
     console.log(`getLogs requests amount: ${requests.length}`);
 
@@ -162,7 +160,7 @@ export const mapTimestamp = async (
   const _bkAndTimes: Promise<[number, string]>[] = [];
   const limit = pLimit(100);
   const bks = new Set(events.map((e) => e.blockNumber));
-  bks.forEach((bk) => _bkAndTimes.push(limit(() => fetchTime(bk))));
+  bks.forEach((bk) => _bkAndTimes.push(limit((_bk) => fetchTime(_bk), bk)));
   const bkAndTimes = await Promise.all(_bkAndTimes);
   const timeRecord = Object.fromEntries(bkAndTimes);
 
