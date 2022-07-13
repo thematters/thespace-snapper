@@ -124,23 +124,24 @@ export const _handler = async (
   }
   console.timeEnd("fetchColorEvents");
 
-  console.time("fetchTime");
   const colorEvents = toFakeTimestampedEvent(
     _events.filter((e) => e.blockNumber <= newSnapshotBlockNum)
   );
-  console.timeEnd("fetchTime");
 
   console.log(`new Color events amount: ${colorEvents.length}`);
   if (colorEvents.length < minColorsAmount) {
     console.log(`new Color events too few, quit.`);
     return;
   } else if (colorEvents.length <= maxColorsAmount) {
+    console.time("fulfillTimestamp");
+    const _ces = await fulfillTimestamp(colorEvents, snapper.provider!);
+    console.timeEnd("fulfillTimestamp");
     await takeSnapshot(
       lastSnapshotBlockNum,
       newSnapshotBlockNum,
       lastSnapshotCid,
       await fetchLastDeltaCid(snapper, lastSnapshotBlockNum),
-      await fulfillTimestamp(colorEvents, snapper.provider!),
+      _ces,
       snapper,
       ipfs,
       storage
@@ -154,7 +155,9 @@ export const _handler = async (
       if (_colorEvents.length < minColorsAmount) {
         continue;
       }
+      console.time("fulfillTimestamp");
       const _ces = await fulfillTimestamp(_colorEvents, snapper.provider!);
+      console.timeEnd("fulfillTimestamp");
       _newSnapshotBlockNum = nth(_ces, -1)!.bk;
       await takeSnapshot(
         _lastSnapshotBlockNum,
