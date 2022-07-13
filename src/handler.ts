@@ -111,11 +111,11 @@ export const _handler = async (
   // note that fetchColorEvents may take long time when too many Color events to fetch.
 
   console.time("fetchColorEvents");
-  let _res = [];
+  let _events = [];
   try {
-    _res = await fetchColorEvents(registry, lastSnapshotBlockNum + 1);
+    _events = await fetchColorEvents(registry, lastSnapshotBlockNum + 1);
   } catch (err) {
-    _res = await fetchColorEvents(
+    _events = await fetchColorEvents(
       registry,
       lastSnapshotBlockNum + 1,
       newSnapshotBlockNum
@@ -124,43 +124,42 @@ export const _handler = async (
   console.timeEnd("fetchColorEvents");
 
   console.time("fetchTime");
-  const colors = await mapTimestamp(
-    _res.filter((e) => e.blockNumber <= newSnapshotBlockNum),
-    snapper.provider!
+  const colorEvents = _events.filter(
+    (e) => e.blockNumber <= newSnapshotBlockNum
   );
   console.timeEnd("fetchTime");
 
-  console.log(`new Color events amount: ${colors.length}`);
-  if (colors.length < minColorsAmount) {
+  console.log(`new Color events amount: ${colorEvents.length}`);
+  if (colorEvents.length < minColorsAmount) {
     console.log(`new Color events too few, quit.`);
     return;
-  } else if (colors.length <= maxColorsAmount) {
+  } else if (colorEvents.length <= maxColorsAmount) {
     await takeSnapshot(
       lastSnapshotBlockNum,
       newSnapshotBlockNum,
       lastSnapshotCid,
       await fetchLastDeltaCid(snapper, lastSnapshotBlockNum),
-      colors,
+      await mapTimestamp(colorEvents, snapper.provider!),
       snapper,
       ipfs,
       storage
     );
   } else {
-    const colorss = chunk(colors, maxColorsAmount);
+    const colorEventss = chunk(colorEvents, maxColorsAmount);
     let _lastSnapshotBlockNum = lastSnapshotBlockNum;
     let _lastSnapshotCid = lastSnapshotCid;
     let _newSnapshotBlockNum = 0;
-    for (const _colors of colorss) {
-      if (_colors.length < minColorsAmount) {
+    for (const _colorEvents of colorEventss) {
+      if (_colorEvents.length < minColorsAmount) {
         continue;
       }
-      _newSnapshotBlockNum = nth(_colors, -1)!.bk;
+      _newSnapshotBlockNum = nth(_colorEvents, -1)!.blockNumber;
       await takeSnapshot(
         _lastSnapshotBlockNum,
         _newSnapshotBlockNum,
         _lastSnapshotCid,
         await fetchLastDeltaCid(snapper, _lastSnapshotBlockNum),
-        _colors,
+        await mapTimestamp(_colorEvents, snapper.provider!),
         snapper,
         ipfs,
         storage

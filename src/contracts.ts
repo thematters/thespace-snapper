@@ -158,7 +158,7 @@ export const mapTimestamp = async (
     new Date((await provider.getBlock(bk)).timestamp * 1000).toISOString(),
   ];
   const _bkAndTimes: Promise<[number, string]>[] = [];
-  const limit = pLimit(25);
+  const limit = pLimit(5);
   const bks = new Set(events.map((e) => e.blockNumber));
   bks.forEach((bk) => _bkAndTimes.push(limit((_bk) => fetchTime(_bk), bk)));
   const bkAndTimes = await Promise.all(_bkAndTimes);
