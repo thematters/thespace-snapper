@@ -124,6 +124,8 @@ export const _handler = async (
   }
   console.timeEnd("fetchColorEvents");
 
+  const lastDeltaCid = await fetchLastDeltaCid(snapper, lastSnapshotBlockNum);
+
   const colorEvents = toFakeTimestampedEvent(
     _events.filter((e) => e.blockNumber <= newSnapshotBlockNum)
   );
@@ -140,7 +142,7 @@ export const _handler = async (
       lastSnapshotBlockNum,
       newSnapshotBlockNum,
       lastSnapshotCid,
-      await fetchLastDeltaCid(snapper, lastSnapshotBlockNum),
+      lastDeltaCid,
       _ces,
       snapper,
       ipfs,
@@ -150,6 +152,7 @@ export const _handler = async (
     const colorEventss = chunk(colorEvents, maxColorsAmount);
     let _lastSnapshotBlockNum = lastSnapshotBlockNum;
     let _lastSnapshotCid = lastSnapshotCid;
+    let _lastDeltaCid = lastDeltaCid;
     let _newSnapshotBlockNum = 0;
     for (const _colorEvents of colorEventss) {
       if (_colorEvents.length < minColorsAmount) {
@@ -163,7 +166,7 @@ export const _handler = async (
         _lastSnapshotBlockNum,
         _newSnapshotBlockNum,
         _lastSnapshotCid,
-        await fetchLastDeltaCid(snapper, _lastSnapshotBlockNum),
+        _lastSnapshotCid,
         _ces,
         snapper,
         ipfs,
@@ -174,6 +177,7 @@ export const _handler = async (
       );
       _lastSnapshotBlockNum = _blockNum.toNumber();
       _lastSnapshotCid = cid;
+      _lastDeltaCid = await fetchLastDeltaCid(snapper, _lastSnapshotBlockNum);
     }
   }
 };
