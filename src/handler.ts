@@ -1,5 +1,6 @@
 import type { Contract, Event } from "ethers";
 import type { Storage, IPFS } from "./storage";
+import type { TimestampedColorEvent } from "./contracts";
 
 import axios from "axios";
 import { ethers } from "ethers";
@@ -12,7 +13,8 @@ import {
   fetchSnapshotEvents,
   fetchDeltaEvents,
   fetchLastDeltaCid,
-  toFakeTimestampedEvent,
+  toFakeTimestampedEvents,
+  deltaToTimestampedEvents,
   fulfillTimestamp,
 } from "./contracts";
 import { abi as registryABI } from "../abi/TheSpaceRegistry.json";
@@ -90,10 +92,11 @@ export const _handler = async (
 
   const regionId = 0;
   const latestBlockNum: number = await snapper.provider!.getBlockNumber();
-  const [_lastSnapshotBlock, lastSnapshotCid] = await snapper[
+  const [_lastSnapshotBlock, _lastSnapshotCid] = await snapper[
     "latestSnapshotInfo(uint256)"
   ](regionId);
   const lastSnapshotBlockNum = _lastSnapshotBlock.toNumber();
+  let lastSnapshotCid = _lastSnapshotCid;
 
   const newSnapshotBlockNum: number = latestBlockNum + 1 - safeConfirmations; // note that latestBlock's block confirmations is 1
   if (newSnapshotBlockNum <= lastSnapshotBlockNum) {
@@ -101,7 +104,7 @@ export const _handler = async (
     return;
   }
 
-  // upload snapshot and delta from ipfs to s3 if there is no file in bucket.
+  // upload snapshot and delta from ipfs to s3 if there is no file in bucket
 
   if ((await storage.check(lastSnapshotCid)) === false) {
     console.time("syncSnapperFiles");
@@ -109,32 +112,50 @@ export const _handler = async (
     console.timeEnd("syncSnapperFiles");
   }
 
-  // note that fetchColorEvents may take long time when too many Color events to fetch.
+  // fetch new Color events and if no new events, quit.
 
   console.time("fetchColorEvents");
-  let _events = [];
+  let _newEvents = [];
   try {
-    _events = await fetchColorEvents(registry, lastSnapshotBlockNum + 1);
+    _newEvents = await fetchColorEvents(registry, lastSnapshotBlockNum + 1);
   } catch (err) {
-    _events = await fetchColorEvents(
+    _newEvents = await fetchColorEvents(
       registry,
       lastSnapshotBlockNum + 1,
       newSnapshotBlockNum
     );
   }
+  const newEvents = _newEvents.filter(
+    (e) => e.blockNumber <= newSnapshotBlockNum
+  );
   console.timeEnd("fetchColorEvents");
+  console.log(`new Color events amount: ${newEvents.length}`);
+  if (newEvents.length === 0) {
+    console.log(`no new Color events, quit.`);
+    return;
+  }
 
-  const lastDeltaCid = await fetchLastDeltaCid(snapper, lastSnapshotBlockNum);
+  // try read last delta data and if this delta is small, emit replacement delta combined with new events
 
-  const colorEvents = toFakeTimestampedEvent(
-    _events.filter((e) => e.blockNumber <= newSnapshotBlockNum)
+  let lastDeltaCid = await fetchLastDeltaCid(snapper, lastSnapshotBlockNum);
+  let lastDeltaEvents: TimestampedColorEvent[] = [];
+
+  if (lastDeltaCid !== null) {
+    const buff = await storage.read(lastDeltaCid);
+    const lastDelta = JSON.parse(buff.toString());
+    const _lastDeltaEvents = deltaToTimestampedEvents(lastDelta);
+    if (_lastDeltaEvents.length < minColorsAmount) {
+      lastDeltaEvents = _lastDeltaEvents;
+      lastDeltaCid = lastDelta.prev;
+      lastSnapshotCid = lastDelta.snapshot.cid || lastDelta.snapshot;
+    }
+  }
+
+  const colorEvents = lastDeltaEvents.concat(
+    toFakeTimestampedEvents(newEvents)
   );
 
-  console.log(`new Color events amount: ${colorEvents.length}`);
-  if (colorEvents.length < minColorsAmount) {
-    console.log(`new Color events too few, quit.`);
-    return;
-  } else if (colorEvents.length <= maxColorsAmount) {
+  if (colorEvents.length <= maxColorsAmount) {
     console.time("fulfillTimestamp");
     const _ces = await fulfillTimestamp(colorEvents, snapper.provider!);
     console.timeEnd("fulfillTimestamp");

@@ -149,7 +149,24 @@ export const fetchLastDeltaCid = async (
   }
 };
 
-export const toFakeTimestampedEvent = (
+export const deltaToTimestampedEvents = (
+  delta: Delta
+): TimestampedColorEvent[] => {
+  const es = [];
+  for (const d of delta.delta) {
+    for (const c of d.cs) {
+      es.push({
+        bk: d.bk,
+        time: d.time,
+        pixelId: c.i,
+        colorId: c.c,
+      });
+    }
+  }
+  return es;
+};
+
+export const toFakeTimestampedEvents = (
   events: Event[]
 ): TimestampedColorEvent[] => {
   return events.map((e) => {
