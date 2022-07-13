@@ -12,7 +12,8 @@ import {
   fetchSnapshotEvents,
   fetchDeltaEvents,
   fetchLastDeltaCid,
-  mapTimestamp,
+  toFakeTimestampedEvent,
+  fulfillTimestamp,
 } from "./contracts";
 import { abi as registryABI } from "../abi/TheSpaceRegistry.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
@@ -124,8 +125,8 @@ export const _handler = async (
   console.timeEnd("fetchColorEvents");
 
   console.time("fetchTime");
-  const colorEvents = _events.filter(
-    (e) => e.blockNumber <= newSnapshotBlockNum
+  const colorEvents = toFakeTimestampedEvent(
+    _events.filter((e) => e.blockNumber <= newSnapshotBlockNum)
   );
   console.timeEnd("fetchTime");
 
@@ -139,7 +140,7 @@ export const _handler = async (
       newSnapshotBlockNum,
       lastSnapshotCid,
       await fetchLastDeltaCid(snapper, lastSnapshotBlockNum),
-      await mapTimestamp(colorEvents, snapper.provider!),
+      await fulfillTimestamp(colorEvents, snapper.provider!),
       snapper,
       ipfs,
       storage
@@ -153,13 +154,14 @@ export const _handler = async (
       if (_colorEvents.length < minColorsAmount) {
         continue;
       }
-      _newSnapshotBlockNum = nth(_colorEvents, -1)!.blockNumber;
+      const _ces = await fulfillTimestamp(_colorEvents, snapper.provider!);
+      _newSnapshotBlockNum = nth(_ces, -1)!.bk;
       await takeSnapshot(
         _lastSnapshotBlockNum,
         _newSnapshotBlockNum,
         _lastSnapshotCid,
         await fetchLastDeltaCid(snapper, _lastSnapshotBlockNum),
-        await mapTimestamp(_colorEvents, snapper.provider!),
+        _ces,
         snapper,
         ipfs,
         storage

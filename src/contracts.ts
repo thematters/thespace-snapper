@@ -149,8 +149,21 @@ export const fetchLastDeltaCid = async (
   }
 };
 
-export const mapTimestamp = async (
-  events: Event[],
+export const toFakeTimestampedEvent = (
+  events: Event[]
+): TimestampedColorEvent[] => {
+  return events.map((e) => {
+    return {
+      bk: e.blockNumber,
+      time: "",
+      pixelId: parseInt(e.args!.tokenId),
+      colorId: parseInt(e.args!.color),
+    };
+  });
+};
+
+export const fulfillTimestamp = async (
+  events: TimestampedColorEvent[],
   provider: providers.Provider
 ): Promise<TimestampedColorEvent[]> => {
   const fetchTime = async (bk: number): Promise<[number, string]> => [
@@ -159,17 +172,17 @@ export const mapTimestamp = async (
   ];
   const _bkAndTimes: Promise<[number, string]>[] = [];
   const limit = pLimit(5);
-  const bks = new Set(events.map((e) => e.blockNumber));
+  const bks = new Set(events.filter((e) => e.time === "").map((e) => e.bk));
   bks.forEach((bk) => _bkAndTimes.push(limit((_bk) => fetchTime(_bk), bk)));
   const bkAndTimes = await Promise.all(_bkAndTimes);
   const timeRecord = Object.fromEntries(bkAndTimes);
 
   return events.map((e) => {
     return {
-      bk: e.blockNumber,
-      time: timeRecord[e.blockNumber],
-      pixelId: parseInt(e.args!.tokenId),
-      colorId: parseInt(e.args!.color),
+      bk: e.bk,
+      time: e.time === "" ? timeRecord[e.bk] : e.time,
+      pixelId: e.pixelId,
+      colorId: e.colorId,
     };
   });
 };
