@@ -26,10 +26,8 @@ type BlockDelta = {
 export type Delta = {
   delta: BlockDelta[];
   prev: string | null;
-  snapshot: {
-    cid: string;
-    offset: number;
-  };
+  snapshot: string;
+  "snapshot offset": number;
 };
 
 // API
@@ -225,10 +223,8 @@ const genDelta = (
   return {
     delta: delta,
     prev: lastDeltaCid,
-    snapshot: {
-      cid: lastSnapshotCid,
-      offset: 0,
-    },
+    snapshot: lastSnapshotCid,
+    "snapshot offset": 0,
   };
 };
 

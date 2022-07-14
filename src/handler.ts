@@ -147,7 +147,7 @@ export const _handler = async (
     if (_lastDeltaEvents.length < minColorsAmount) {
       lastDeltaEvents = _lastDeltaEvents;
       lastDeltaCid = lastDelta.prev;
-      lastSnapshotCid = lastDelta.snapshot.cid || lastDelta.snapshot;
+      lastSnapshotCid = lastDelta.snapshot;
     }
   }
 

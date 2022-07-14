@@ -111,9 +111,8 @@ _note: color delta and map snapshot are generated using the same interval._
         ...
     ],
     "prev": "Qma6s6k3iWDtWMBW4qvdZDZxAYFeioMPJDDHYmCpmJgWvp",
-    "snapshot": {
-	    "cid": "QmdTzRdbGeEnWW2yS8kHiwF5YFUfbU4FXqDEhTAtVVtdUq"
-	    "offset": 0
+    "snapshot": "QmdTzRdbGeEnWW2yS8kHiwF5YFUfbU4FXqDEhTAtVVtdUq"
+    "snapshot offset": 0
     }
 }
 ```
@@ -127,9 +126,8 @@ Field Description:
     - `i` pixel id in this color event
     - `c` pixel color to change in this color event
 - `prev` string | null, IPFS CID of previous delta, null for first delta
-- `snapshot` object:
-  - `cid` string, IPFS CID of previous snapshot
-  - `offset` number, index in `delta` array, indicate this snapshot taken before which block number
+- `snapshot` string, IPFS CID of previous snapshot
+- `snapshot offset` number, index in `delta` array, indicate this snapshot taken before which block number
 
 ### snapshot info (event)
 
