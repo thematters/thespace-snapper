@@ -187,7 +187,7 @@ export const _handler = async (
         _lastSnapshotBlockNum,
         _newSnapshotBlockNum,
         _lastSnapshotCid,
-        _lastSnapshotCid,
+        _lastDeltaCid,
         _ces,
         snapper,
         ipfs,

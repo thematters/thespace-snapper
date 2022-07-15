@@ -116,7 +116,13 @@ export const fetchColorEvents = async (
     );
     console.log(`getLogs requests amount: ${requests.length}`);
 
-    return flatten(await Promise.all(requests));
+    const res = await Promise.all(requests);
+    console.log(
+      `eth_getlogs which return more than 900 events: ${res
+        .map((l) => l.length)
+        .filter((i) => i > 900)}`
+    );
+    return flatten(res);
   } else {
     return await theSpace.queryFilter(theSpace.filters.Color(), fromBlock);
   }
