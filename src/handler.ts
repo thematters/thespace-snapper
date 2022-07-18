@@ -4,7 +4,6 @@ import type { TimestampedColorEvent } from "./contracts";
 
 import axios from "axios";
 import { ethers } from "ethers";
-import { AbortController } from "node-abort-controller";
 import { nth, chunk } from "lodash";
 import { S3Storage, IpfsStorage } from "./storage";
 import {
@@ -19,10 +18,6 @@ import {
 } from "./contracts";
 import { abi as registryABI } from "../abi/TheSpaceRegistry.json";
 import { abi as snapperABI } from "../abi/Snapper.json";
-
-// polyfill node14 for aws lambda
-
-globalThis.AbortController = AbortController;
 
 // main
 

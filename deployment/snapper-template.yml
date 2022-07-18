@@ -55,7 +55,7 @@ Resources:
           INFURA_IPFS_PROJECT_SECRET: !Ref infuraIpfsProjectSecret
       Architectures:
         - x86_64
-      Runtime: nodejs14.x
+      Runtime: nodejs16.x
       MemorySize: 512
       Timeout: 900
       Role: !GetAtt LambdaRole.Arn
