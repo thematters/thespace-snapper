@@ -81,18 +81,6 @@ describe("_handler", function () {
     );
     expect(consoleSpy).toHaveBeenCalledWith("syncSnapperFiles");
   });
-  it("do not take snapshot if color events amount smaller than MIN_COLORS_AMOUNT", async () => {
-    const tx = await registry.setColor(
-      1,
-      1,
-      "0x67B94473D81D0cd00849D563C94d0432Ac988B49"
-    );
-    await tx.wait();
-    const consoleSpy = jest.spyOn(console, "log");
-    await _handler(1, 2, 10, registry, snapper, ipfs, storage);
-    expect(consoleSpy).toHaveBeenCalledWith("new Color events amount: 1");
-    expect(consoleSpy).toHaveBeenCalledWith("new Color events too few, quit.");
-  });
   it("take snapshot if color events amount >= MIN_COLORS_AMOUNT and <= MAX_COLORS_AMOUNT", async () => {
     const tx = await registry.setColor(
       1,
