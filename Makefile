@@ -24,13 +24,13 @@ node_modules:
 	npm install
 
 dist/snapper-handler.js: node_modules
-	npx webpack --env goal=aws-lambda
+	npx webpack
 
 dist/handler.zip: dist/snapper-handler.js
 	zip -j dist/handler.zip dist/snapper-handler.js
 
 lambda: clean node_modules
-	npx webpack --env goal=aws-lambda
+	npx webpack
 
 # delete-snapper:
 # 	aws --profile ${AWS_PROFILE} --region ${AWS_REGION} cloudformation delete-stack --stack-name ${SNAPPER_STACK_NAME}

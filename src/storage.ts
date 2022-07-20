@@ -1,6 +1,6 @@
 import type { IPFS as _IPFS } from "ipfs-core-types";
 
-import { create as createIPFS } from "ipfs-http-client";
+import { create } from "ipfs-http-client";
 import S3 from "aws-sdk/clients/s3";
 
 // interfaces
@@ -73,7 +73,7 @@ export class IpfsStorage implements IPFS {
   ipfs: _IPFS;
 
   constructor(infuraId: string, infuraSecret: string) {
-    this.ipfs = createIPFS({
+    this.ipfs = create({
       host: "ipfs.infura.io",
       port: 5001,
       protocol: "https",
