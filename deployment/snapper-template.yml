@@ -126,7 +126,7 @@ Resources:
   CronEvent:
     Type: "AWS::Events::Rule"
     Properties:
-      ScheduleExpression: "rate(10 minutes)"
+      ScheduleExpression: "rate(5 minutes)"
       Targets:
         - Arn: !GetAtt SnapperLambda.Arn
           Id: CronEventLambdaTarget
